@@ -191,8 +191,32 @@ button.btn{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-si
 .member-chip{background:#16213e;border:1px solid #333;color:#ccc;border-radius:16px;padding:4px 10px;font-size:11px;cursor:pointer;user-select:none;transition:all .15s}
 .member-chip:hover{border-color:#e94560}
 .member-chip.checked{background:#e94560;border-color:#e94560;color:#fff;font-weight:700}
+.member-chip.absent{opacity:.4;cursor:not-allowed;pointer-events:none}
 @media (max-width:640px){.form-grid{grid-template-columns:1fr}}
 .progress-mode-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:12px;color:#aaa}
+
+/* ---------- Leave / attendance ---------- */
+.leave-section{margin:14px 0}
+.leave-section > label{display:block;font-size:12px;color:#aaa;margin-bottom:6px}
+.leave-row{display:flex;flex-direction:column;gap:6px}
+.leave-chip{display:flex;align-items:center;gap:0;background:#0f3460;border:1px solid #333;border-radius:16px;overflow:hidden;font-size:12px;font-weight:600;width:fit-content}
+.leave-chip:hover{border-color:#888}
+.leave-chip .chip-name{padding:5px 10px;color:#ccc;white-space:nowrap}
+.leave-chip .chip-btn{padding:5px 9px;border:none;background:transparent;color:#666;cursor:pointer;font-size:11px;font-weight:700;border-left:1px solid #333;transition:all .15s;white-space:nowrap}
+.leave-chip .chip-btn:hover{background:#1a2440;color:#fff}
+.leave-chip.leave .chip-name{color:#e67e22}
+.leave-chip.leave{border-color:#e67e22}
+.leave-chip.leave .chip-btn.btn-leave{background:#e67e22;color:#fff}
+.leave-chip.mc .chip-name{color:#9b59b6}
+.leave-chip.mc{border-color:#9b59b6}
+.leave-chip.mc .chip-btn.btn-mc{background:#9b59b6;color:#fff}
+.leave-chip.half .chip-name{color:#1abc9c}
+.leave-chip.half{border-color:#1abc9c}
+.leave-chip.half .chip-btn.btn-half{background:#1abc9c;color:#fff}
+.absence-tag{font-size:9px;font-weight:800;padding:2px 6px;border-radius:8px;text-transform:uppercase;display:inline-block}
+.absence-tag.leave{background:#e67e22;color:#fff}
+.absence-tag.mc{background:#9b59b6;color:#fff}
+.absence-tag.half{background:#1abc9c;color:#fff}
 
 /* ---------- Auth overlay ---------- */
 .auth-overlay{display:flex;position:fixed;top:0;right:0;bottom:0;left:0;background:#1a1a2e;z-index:200;align-items:center;justify-content:center;padding:16px;visibility:hidden;opacity:0;transition:opacity .2s}
@@ -403,20 +427,14 @@ button.btn{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-si
 <div class="modal-bg" id="jobModalBg">
   <div class="modal" style="max-width:480px">
     <h2 id="jobModalTitle">Add Job</h2>
-    <input type="hidden" id="jobProjId">
-    <input type="hidden" id="jobTaskId">
-    <div class="form-row"><label>Project</label><select id="jobProjectSelect"></select></div>
-    <div class="form-row"><label>Job / Site</label><input type="text" id="jobName" placeholder="e.g. LAP Bota, Panel wiring"></div>
-    <div class="form-grid">
-      <div class="form-row"><label>Date</label><input type="date" id="jobDate"></div>
-      <div class="form-row"><label>Status</label>
-        <select id="jobStatus">
-          <option value="pending">Pending</option>
-          <option value="in-progress">In Progress</option>
-          <option value="done">Done</option>
-        </select>
-      </div>
+    <input type="hidden" id="jobId">
+    <div class="form-row">
+      <label>Project (optional — pick one or type a site name)</label>
+      <input type="text" id="jobProjectInput" list="jobProjectDatalist" placeholder="e.g. UPSI Teluk Intan M&E — or just type a site">
+      <datalist id="jobProjectDatalist"></datalist>
     </div>
+    <div class="form-row"><label>What's the job?</label><input type="text" id="jobName" placeholder="e.g. Panel wiring, Site survey"></div>
+    <div class="form-row"><label>Date</label><input type="date" id="jobDate" onchange="renderJobMemberGrid()"></div>
     <div class="form-row">
       <label>Team</label>
       <div class="member-grid" id="jobMemberGrid"></div>
@@ -435,6 +453,10 @@ button.btn{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-si
   <div class="modal" style="max-width:480px">
     <h2 id="dayDetailTitle">Jobs</h2>
     <div class="list-panel" id="dayDetailList"></div>
+    <div class="leave-section needs-edit">
+      <label>Absent this day</label>
+      <div class="leave-row" id="leaveRow"></div>
+    </div>
     <div class="modal-actions">
       <button class="btn btn-add needs-edit" id="btnAddJobForDay" onclick="addJobForDetailDay()">+ Add Job</button>
       <button class="btn btn-secondary" onclick="closeDayDetailModal()">Close</button>
@@ -480,7 +502,7 @@ const STATUS_LABELS = {planning:'Planning','in-progress':'In Progress',delayed:'
 const STATUS_COLORS = {planning:'#7f8c8d','in-progress':'#2980b9',delayed:'#e94560','on-hold':'#d35400',completed:'#27ae60'};
 const VIEW_TITLES = {calendar:'Team Calendar',weekly:'Weekly Schedule',ongoing:'On-going Projects',completed:'Completed Projects',gantt:'Gantt Chart',members:'Team Members',users:'User Management'};
 
-let state = { projects: {}, members: {} };
+let state = { projects: {}, jobs: {}, members: {}, attendance: {} };
 let currentUser = null, currentRole = 'view-only';
 let fbReady = false, fbRef = null, fbUsersRef = null;
 let calWeekStart = mondayOf(new Date());
@@ -546,7 +568,7 @@ function listenToData() {
   setSyncStatus('syncing');
   fbRef.on('value', snap => {
     const val = snap.val() || {};
-    state = { projects: val.projects || {}, members: val.members || {} };
+    state = { projects: val.projects || {}, jobs: val.jobs || {}, members: val.members || {}, attendance: val.attendance || {} };
     saveToLocalStorage();
     setSyncStatus('online');
     renderAll();
@@ -760,13 +782,18 @@ function renderAll() {
   renderMembers();
 }
 
+// ---------- Jobs helpers ----------
+function jobsForProject(projId) {
+  return Object.values(state.jobs || {}).filter(j => j.projectId === projId);
+}
+
 // ---------- Progress ----------
 function computeProgress(proj) {
   if (proj.progressMode === 'manual') return Math.max(0, Math.min(100, Number(proj.manualProgress) || 0));
-  const tasks = Object.values(proj.tasks || {});
-  if (!tasks.length) return 0;
-  const done = tasks.filter(t => t.status === 'done').length;
-  return Math.round((done / tasks.length) * 100);
+  const jobs = jobsForProject(proj.id);
+  if (!jobs.length) return 0;
+  const done = jobs.filter(j => j.status === 'done').length;
+  return Math.round((done / jobs.length) * 100);
 }
 
 // ---------- Projects: On-going / Completed ----------
@@ -775,7 +802,8 @@ function renderProjectGrid(elId, list) {
   if (!list.length) { el.innerHTML = '<div class="empty-state">No projects found.</div>'; return; }
   el.innerHTML = list.map(p => {
     const progress = computeProgress(p);
-    const team = [...new Set(Object.values(p.tasks||{}).flatMap(t => t.assignees||[]))].sort();
+    const jobs = jobsForProject(p.id);
+    const team = [...new Set(jobs.flatMap(j => j.assignees||[]))].sort();
     return `
     <div class="project-card" onclick="openProjectModal('${p.id}')">
       <div class="pc-top">
@@ -784,7 +812,7 @@ function renderProjectGrid(elId, list) {
       </div>
       <div class="pc-dates">${fmtRange(p.startDate, p.endDate)}</div>
       <div class="pc-progress-bar"><div class="pc-progress-fill" style="width:${progress}%;background:${STATUS_COLORS[p.status]||'#27ae60'}"></div></div>
-      <div class="pc-progress-label"><span>${Object.keys(p.tasks||{}).length} jobs</span><span>${progress}%</span></div>
+      <div class="pc-progress-label"><span>${jobs.length} jobs</span><span>${progress}%</span></div>
       ${team.length ? `<div class="pc-team">${team.map(t => `<span class="avatar-chip">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
     </div>`;
   }).join('');
@@ -827,8 +855,8 @@ function openProjectModal(id) {
   toggleManualProgress();
   document.getElementById('btnDeleteProject').classList.toggle('hidden', !proj);
   editingTasks = {};
-  if (proj && proj.tasks) {
-    Object.entries(proj.tasks).forEach(([tid, t]) => editingTasks[tid] = { ...t, id: tid });
+  if (proj) {
+    jobsForProject(proj.id).forEach(j => editingTasks[j.id] = { ...j });
   }
   renderTaskRows();
   document.getElementById('projectModalBg').classList.add('open');
@@ -888,11 +916,6 @@ function saveProject() {
   if (start && end && end < start) { errEl.textContent = 'End date cannot be before start date.'; return; }
   let id = document.getElementById('projId').value;
   if (!id) id = 'p' + Date.now();
-  const tasks = {};
-  Object.values(editingTasks).forEach(t => {
-    if (!t.name || !t.name.trim()) return;
-    tasks[t.id] = { id: t.id, name: t.name.trim(), assignees: t.assignees||[], start: t.start||'', end: t.end||'', status: t.status||'pending' };
-  });
   const proj = {
     id, name, client: document.getElementById('pClient').value.trim(),
     site: document.getElementById('pSite').value.trim(),
@@ -901,11 +924,24 @@ function saveProject() {
     notes: document.getElementById('pNotes').value.trim(),
     progressMode: document.getElementById('pManualProgress').checked ? 'manual' : 'auto',
     manualProgress: Number(document.getElementById('pManualProgressVal').value) || 0,
-    tasks,
     createdAt: (state.projects[id] && state.projects[id].createdAt) || Date.now(),
     createdBy: (state.projects[id] && state.projects[id].createdBy) || (currentUser && currentUser.name) || ''
   };
   fbSet('projects/' + id, proj);
+
+  // Jobs live flatly under jobs/{id} — write kept rows, delete rows removed from the editor
+  const originalIds = jobsForProject(id).map(j => j.id);
+  const keptIds = [];
+  Object.values(editingTasks).forEach(t => {
+    if (!t.name || !t.name.trim()) return;
+    keptIds.push(t.id);
+    const job = { id: t.id, projectId: id, projectLabel: name, name: t.name.trim(), assignees: t.assignees||[], start: t.start||'', end: t.end||'', status: t.status||'pending',
+      createdAt: (state.jobs[t.id] && state.jobs[t.id].createdAt) || Date.now(),
+      createdBy: (state.jobs[t.id] && state.jobs[t.id].createdBy) || (currentUser && currentUser.name) || '' };
+    fbSet('jobs/' + t.id, job);
+  });
+  originalIds.filter(i => !keptIds.includes(i)).forEach(i => fbRemove('jobs/' + i));
+
   closeProjectModal();
 }
 
@@ -913,6 +949,7 @@ function deleteProjectConfirm() {
   const id = document.getElementById('projId').value;
   if (!id) return;
   showConfirm('Delete Project', 'This will permanently delete the project and all its jobs. Continue?', () => {
+    jobsForProject(id).forEach(j => fbRemove('jobs/' + j.id));
     fbRemove('projects/' + id);
     closeConfirmModal();
     closeProjectModal();
@@ -920,26 +957,23 @@ function deleteProjectConfirm() {
 }
 
 // ---------- Job modal (quick add/edit, separate from project editor) ----------
-function populateJobProjectSelect(selectedId) {
-  const sel = document.getElementById('jobProjectSelect');
-  const list = Object.values(state.projects||{}).sort((a,b) => (a.name||'').localeCompare(b.name||''));
-  sel.innerHTML = list.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
-  if (selectedId) sel.value = selectedId;
+function populateJobProjectDatalist() {
+  const dl = document.getElementById('jobProjectDatalist');
+  const names = Object.values(state.projects||{}).map(p => p.name).sort();
+  dl.innerHTML = names.map(n => `<option value="${escapeHtml(n)}">`).join('');
 }
 
-function openJobModal(taskId, projId, dateHint) {
+function openJobModal(jobId, dateHint) {
   document.getElementById('jobError').textContent = '';
-  populateJobProjectSelect(projId);
-  const proj = projId ? state.projects[projId] : null;
-  const task = (proj && taskId) ? proj.tasks[taskId] : null;
-  document.getElementById('jobProjId').value = projId || '';
-  document.getElementById('jobTaskId').value = taskId || '';
-  document.getElementById('jobModalTitle').textContent = task ? 'Edit Job' : 'Add Job';
-  document.getElementById('jobName').value = task ? task.name||'' : '';
-  document.getElementById('jobDate').value = task ? (task.start||'') : (dateHint || toISO(new Date()));
-  document.getElementById('jobStatus').value = task ? task.status||'pending' : 'pending';
-  jobSelectedAssignees = task ? [...(task.assignees||[])] : [];
-  document.getElementById('btnDeleteJob').classList.toggle('hidden', !task);
+  populateJobProjectDatalist();
+  const job = jobId ? state.jobs[jobId] : null;
+  document.getElementById('jobId').value = jobId || '';
+  document.getElementById('jobModalTitle').textContent = job ? 'Edit Job' : 'Add Job';
+  document.getElementById('jobProjectInput').value = job ? (job.projectLabel||'') : '';
+  document.getElementById('jobName').value = job ? job.name||'' : '';
+  document.getElementById('jobDate').value = job ? (job.start||'') : (dateHint || toISO(new Date()));
+  jobSelectedAssignees = job ? [...(job.assignees||[])] : [];
+  document.getElementById('btnDeleteJob').classList.toggle('hidden', !job);
   renderJobMemberGrid();
   document.getElementById('jobModalBg').classList.add('open');
 }
@@ -949,7 +983,13 @@ function renderJobMemberGrid() {
   const el = document.getElementById('jobMemberGrid');
   const memberNames = Object.values(state.members||{}).map(m => m.name).sort();
   if (!memberNames.length) { el.innerHTML = '<span style="color:#666;font-size:11px">No members yet — add some in the Members tab</span>'; return; }
-  el.innerHTML = memberNames.map(n => `<span class="member-chip ${jobSelectedAssignees.includes(n)?'checked':''}" onclick="toggleJobAssignee('${escapeHtml(n).replace(/'/g,"\\'")}')">${escapeHtml(n)}</span>`).join('');
+  const dateVal = document.getElementById('jobDate').value;
+  const dayAttendance = getAttendance(dateVal);
+  el.innerHTML = memberNames.map(n => {
+    const absent = !!dayAttendance[n];
+    const checked = jobSelectedAssignees.includes(n);
+    return `<span class="member-chip ${checked?'checked':''} ${absent && !checked?'absent':''}" title="${absent?ABSENCE_LABELS[dayAttendance[n]]:''}" onclick="${absent && !checked?'':`toggleJobAssignee('${escapeHtml(n).replace(/'/g,"\\'")}')`}">${escapeHtml(n)}${absent?' · '+ABSENCE_LABELS[dayAttendance[n]]:''}</span>`;
+  }).join('');
 }
 function toggleJobAssignee(name) {
   const i = jobSelectedAssignees.indexOf(name);
@@ -959,30 +999,67 @@ function toggleJobAssignee(name) {
 
 function saveJob() {
   const errEl = document.getElementById('jobError');
-  const projId = document.getElementById('jobProjectSelect').value;
+  const projectLabelRaw = document.getElementById('jobProjectInput').value.trim();
   const name = document.getElementById('jobName').value.trim();
   const date = document.getElementById('jobDate').value;
-  if (!projId) { errEl.textContent = 'Please select a project.'; return; }
-  if (!name) { errEl.textContent = 'Job / site name is required.'; return; }
+  if (!name) { errEl.textContent = "Please describe what the job is."; return; }
   if (!date) { errEl.textContent = 'Please choose a date.'; return; }
-  let taskId = document.getElementById('jobTaskId').value;
-  const prevProjId = document.getElementById('jobProjId').value;
-  if (!taskId) taskId = 't' + Date.now() + Math.floor(Math.random()*1000);
-  const task = { id: taskId, name, assignees: [...jobSelectedAssignees], start: date, end: date, status: document.getElementById('jobStatus').value };
-  if (prevProjId && prevProjId !== projId) fbRemove('projects/' + prevProjId + '/tasks/' + taskId);
-  fbSet('projects/' + projId + '/tasks/' + taskId, task);
+
+  // Resolve against an existing project by name (case-insensitive); otherwise it's a free-text
+  // site/label with no tracked project — "not every job is under a Project".
+  let projectId = '', projectLabel = projectLabelRaw;
+  if (projectLabelRaw) {
+    const match = Object.values(state.projects||{}).find(p => (p.name||'').toLowerCase() === projectLabelRaw.toLowerCase());
+    if (match) { projectId = match.id; projectLabel = match.name; }
+  }
+
+  let jobId = document.getElementById('jobId').value;
+  if (!jobId) jobId = 'j' + Date.now() + Math.floor(Math.random()*1000);
+  const status = date <= toISO(new Date()) ? 'done' : 'pending';
+  const job = {
+    id: jobId, projectId, projectLabel, name, assignees: [...jobSelectedAssignees], start: date, end: date, status,
+    createdAt: (state.jobs[jobId] && state.jobs[jobId].createdAt) || Date.now(),
+    createdBy: (state.jobs[jobId] && state.jobs[jobId].createdBy) || (currentUser && currentUser.name) || ''
+  };
+  fbSet('jobs/' + jobId, job);
   closeJobModal();
 }
 
 function deleteJobConfirm() {
-  const projId = document.getElementById('jobProjId').value;
-  const taskId = document.getElementById('jobTaskId').value;
-  if (!projId || !taskId) return;
+  const jobId = document.getElementById('jobId').value;
+  if (!jobId) return;
   showConfirm('Delete Job', 'Remove this job entry?', () => {
-    fbRemove('projects/' + projId + '/tasks/' + taskId);
+    fbRemove('jobs/' + jobId);
     closeConfirmModal();
     closeJobModal();
   });
+}
+
+// ---------- Attendance (AL / half-day AL / MC), mirrors Service Schedule ----------
+const ABSENCE_LABELS = { leave: 'AL', half: '½ AL', mc: 'MC' };
+function getAttendance(dateISO) { return (state.attendance && state.attendance[dateISO]) || {}; }
+function setAttendance(dateISO, name, type) {
+  const day = { ...getAttendance(dateISO) };
+  if (day[name] === type) delete day[name]; else day[name] = type;
+  state.attendance[dateISO] = day; // optimistic local update — the day-detail modal re-renders instantly, not after the Firebase round-trip
+  fbSet('attendance/' + dateISO, day);
+  renderLeaveRow(dateISO);
+}
+function renderLeaveRow(dateISO) {
+  const row = document.getElementById('leaveRow');
+  if (!row) return;
+  const members = Object.values(state.members||{}).sort((a,b) => a.name.localeCompare(b.name));
+  if (!members.length) { row.innerHTML = ''; return; }
+  const day = getAttendance(dateISO);
+  row.innerHTML = members.map(m => {
+    const status = day[m.name] || '';
+    return `<div class="leave-chip ${status}">
+      <span class="chip-name">${escapeHtml(m.name)}</span>
+      <button class="chip-btn btn-leave" onclick="setAttendance('${dateISO}','${escapeHtml(m.name).replace(/'/g,"\\'")}','leave')" title="Mark AL">AL</button>
+      <button class="chip-btn btn-half" onclick="setAttendance('${dateISO}','${escapeHtml(m.name).replace(/'/g,"\\'")}','half')" title="Mark AL Half Day">½AL</button>
+      <button class="chip-btn btn-mc" onclick="setAttendance('${dateISO}','${escapeHtml(m.name).replace(/'/g,"\\'")}','mc')" title="Mark MC">MC</button>
+    </div>`;
+  }).join('');
 }
 
 // ---------- Gantt ----------
@@ -1005,7 +1082,7 @@ function renderGantt() {
   } else {
     const proj = state.projects[sel];
     if (proj) {
-      rows = Object.values(proj.tasks||{}).filter(t => t.start && t.end).map(t => ({
+      rows = jobsForProject(sel).filter(t => t.start && t.end).map(t => ({
         label: t.name, sub: (t.assignees||[]).join(', '), start: t.start, end: t.end,
         status: t.status === 'done' ? 'completed' : (t.status === 'in-progress' ? 'in-progress' : 'planning'),
         progress: t.status === 'done' ? 100 : (t.status === 'in-progress' ? 50 : 0)
@@ -1058,20 +1135,19 @@ function monthNext(){ monthCursor = addMonths(monthCursor,1); renderMonthCalenda
 function monthToday(){ monthCursor = startOfMonth(new Date()); renderMonthCalendar(); }
 
 function buildJobsByDate() {
-  // dateISO -> [ {projId, taskId, project, task, assignees, status, projStatus} ]
+  // dateISO -> [ {jobId, project, task, assignees, status, projStatus} ]
   const byDate = {};
-  Object.values(state.projects||{}).forEach(p => {
-    Object.values(p.tasks||{}).forEach(t => {
-      if (!t.start || !t.end) return;
-      const s = parseISO(t.start), e = parseISO(t.end);
-      let d = new Date(s);
-      while (d <= e) {
-        const iso = toISO(d);
-        byDate[iso] = byDate[iso] || [];
-        byDate[iso].push({ projId: p.id, taskId: t.id, project: p.name, task: t.name, assignees: t.assignees||[], status: t.status, projStatus: p.status });
-        d = addDays(d, 1);
-      }
-    });
+  Object.values(state.jobs||{}).forEach(j => {
+    if (!j.start || !j.end) return;
+    const proj = j.projectId ? state.projects[j.projectId] : null;
+    const s = parseISO(j.start), e = parseISO(j.end);
+    let d = new Date(s);
+    while (d <= e) {
+      const iso = toISO(d);
+      byDate[iso] = byDate[iso] || [];
+      byDate[iso].push({ jobId: j.id, project: j.projectLabel || proj?.name || '', task: j.name, assignees: j.assignees||[], status: j.status, projStatus: proj ? proj.status : '' });
+      d = addDays(d, 1);
+    }
   });
   return byDate;
 }
@@ -1113,11 +1189,11 @@ function renderMonthCalendar() {
   document.getElementById('statOnSite').textContent = onSite.size;
   const weekStart = mondayOf(new Date()), weekEnd = addDays(weekStart, 5);
   let jobsThisWeek = 0;
-  Object.values(state.projects||{}).forEach(p => Object.values(p.tasks||{}).forEach(t => {
-    if (!t.start || !t.end) return;
-    const s = parseISO(t.start), e = parseISO(t.end);
+  Object.values(state.jobs||{}).forEach(j => {
+    if (!j.start || !j.end) return;
+    const s = parseISO(j.start), e = parseISO(j.end);
     if (s <= weekEnd && e >= weekStart) jobsThisWeek++;
-  }));
+  });
   document.getElementById('statJobsWeek').textContent = jobsThisWeek;
 }
 
@@ -1126,24 +1202,25 @@ function openDayDetail(iso) {
   const d = parseISO(iso);
   document.getElementById('dayDetailTitle').textContent = 'Jobs — ' + d.toLocaleDateString('en-GB',{weekday:'long',day:'2-digit',month:'short',year:'numeric'});
   const jobsByDate = buildJobsByDate();
-  const jobs = (jobsByDate[iso] || []).sort((a,b) => a.project.localeCompare(b.project));
+  const jobs = (jobsByDate[iso] || []).sort((a,b) => (a.project||'').localeCompare(b.project||''));
   const el = document.getElementById('dayDetailList');
   if (!jobs.length) { el.innerHTML = '<div class="empty-state" style="padding:20px 0">No jobs scheduled this day.</div>'; }
   else {
     el.innerHTML = jobs.map(j => `
-      <div class="list-row" onclick="closeDayDetailModal();openJobModal('${j.taskId}','${j.projId}')">
-        <div><div class="name">${escapeHtml(j.task)}</div><div class="meta">${escapeHtml(j.project)}${j.assignees.length?' · '+escapeHtml(j.assignees.join(', ')):''}</div></div>
+      <div class="list-row" onclick="closeDayDetailModal();openJobModal('${j.jobId}')">
+        <div><div class="name">${escapeHtml(j.task)}</div><div class="meta">${j.project?escapeHtml(j.project)+' · ':''}${j.assignees.length?escapeHtml(j.assignees.join(', ')):'unassigned'}</div></div>
         <div class="spacer"></div>
         <span class="status-badge status-${j.status==='done'?'completed':(j.status==='in-progress'?'in-progress':'planning')}">${j.status}</span>
       </div>`).join('');
   }
+  renderLeaveRow(iso);
   document.getElementById('dayDetailModalBg').classList.add('open');
 }
 function closeDayDetailModal(){ document.getElementById('dayDetailModalBg').classList.remove('open'); }
 function addJobForDetailDay() {
   const d = currentDayDetailDate;
   closeDayDetailModal();
-  openJobModal(null, null, d);
+  openJobModal(null, d);
 }
 
 // ---------- Weekly schedule ----------
@@ -1158,22 +1235,21 @@ function renderWeeklySchedule() {
   const table = document.getElementById('calTable');
   if (!members.length) { table.innerHTML = '<tr><td class="empty-state">No members added yet.</td></tr>'; return; }
 
-  // Build assignments: memberName -> dayISO -> [ {project, task, status, projId, taskId} ]
+  // Build assignments: memberName -> dayISO -> [ {project, task, status, jobId} ]
   const assign = {};
-  Object.values(state.projects||{}).forEach(p => {
-    Object.values(p.tasks||{}).forEach(t => {
-      if (!t.assignees || !t.assignees.length || !t.start || !t.end) return;
-      const s = parseISO(t.start), e = parseISO(t.end);
-      days.forEach(d => {
-        if (d >= s && d <= e) {
-          const iso = toISO(d);
-          t.assignees.forEach(name => {
-            assign[name] = assign[name] || {};
-            assign[name][iso] = assign[name][iso] || [];
-            assign[name][iso].push({ project: p.name, task: t.name, status: t.status === 'done' ? 'completed' : (t.status==='in-progress'?'in-progress':'planning'), projId: p.id, taskId: t.id });
-          });
-        }
-      });
+  Object.values(state.jobs||{}).forEach(j => {
+    if (!j.assignees || !j.assignees.length || !j.start || !j.end) return;
+    const proj = j.projectId ? state.projects[j.projectId] : null;
+    const s = parseISO(j.start), e = parseISO(j.end);
+    days.forEach(d => {
+      if (d >= s && d <= e) {
+        const iso = toISO(d);
+        j.assignees.forEach(name => {
+          assign[name] = assign[name] || {};
+          assign[name][iso] = assign[name][iso] || [];
+          assign[name][iso].push({ project: j.projectLabel || proj?.name || '', task: j.name, status: j.status === 'done' ? 'completed' : (j.status==='in-progress'?'in-progress':'planning'), jobId: j.id });
+        });
+      }
     });
   });
 
@@ -1185,7 +1261,10 @@ function renderWeeklySchedule() {
     days.forEach(d => {
       const iso = toISO(d);
       const items = (assign[m.name] && assign[m.name][iso]) || [];
-      html += `<td>${items.map(it => `<div class="cal-chip status-${it.status}" onclick="openJobModal('${it.taskId}','${it.projId}')"><b>${escapeHtml(it.project)}</b>${escapeHtml(it.task)}</div>`).join('') || ''}</td>`;
+      const absStatus = getAttendance(iso)[m.name];
+      const chips = items.map(it => `<div class="cal-chip status-${it.status}" onclick="openJobModal('${it.jobId}')">${it.project?`<b>${escapeHtml(it.project)}</b>`:''}${escapeHtml(it.task)}</div>`).join('');
+      const absTag = absStatus ? `<span class="absence-tag ${absStatus}">${ABSENCE_LABELS[absStatus]}</span>` : '';
+      html += `<td>${chips}${absTag}</td>`;
     });
     html += '</tr>';
   });
