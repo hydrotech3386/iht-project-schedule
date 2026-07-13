@@ -128,10 +128,20 @@ button.btn{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-si
 
 /* Tasks in project modal */
 .task-list{display:flex;flex-direction:column;gap:8px;margin:10px 0}
-.task-row{background:#0f3460;border-radius:8px;padding:10px;display:grid;grid-template-columns:1fr 110px 110px 110px 110px 30px;gap:6px;align-items:center}
+.task-row{background:#0f3460;border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:8px}
 .task-row input,.task-row select{background:#16213e;border:1px solid #333;color:#fff;border-radius:5px;padding:6px 8px;font-size:12px}
-.task-row .icon-btn{width:26px;height:26px}
-@media (max-width:640px){.task-row{grid-template-columns:1fr;}.form-grid{grid-template-columns:1fr}}
+.task-row .icon-btn{width:26px;height:26px;flex-shrink:0}
+.task-row-top{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.task-row-top .task-name{flex:1;min-width:140px}
+.task-row-top .task-status{width:110px}
+.task-row-top .task-date{width:130px}
+.task-assignees{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.task-assignees > label{font-size:11px;color:#888;white-space:nowrap}
+.member-grid{display:flex;flex-wrap:wrap;gap:6px}
+.member-chip{background:#16213e;border:1px solid #333;color:#ccc;border-radius:16px;padding:4px 10px;font-size:11px;cursor:pointer;user-select:none;transition:all .15s}
+.member-chip:hover{border-color:#e94560}
+.member-chip.checked{background:#e94560;border-color:#e94560;color:#fff;font-weight:700}
+@media (max-width:640px){.form-grid{grid-template-columns:1fr}}
 .progress-mode-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:12px;color:#aaa}
 
 /* Auth overlay */
@@ -599,7 +609,7 @@ function renderProjects() {
   if (!list.length) { el.innerHTML = '<div class="empty-state">No projects found. Click "+ New Project" to start planning.</div>'; return; }
   el.innerHTML = list.map(p => {
     const progress = computeProgress(p);
-    const team = [...new Set(Object.values(p.tasks||{}).map(t => t.assignee).filter(Boolean))];
+    const team = [...new Set(Object.values(p.tasks||{}).flatMap(t => t.assignees||[]))].sort();
     return `
     <div class="project-card" onclick="openProjectModal('${p.id}')">
       <div class="pc-top">
@@ -643,35 +653,44 @@ function toggleManualProgress() {
   document.getElementById('pManualProgressVal').style.display = document.getElementById('pManualProgress').checked ? '' : 'none';
 }
 
-function memberOptions(selected) {
-  const names = Object.values(state.members||{}).map(m => m.name).sort();
-  return '<option value="">— unassigned —</option>' + names.map(n => `<option value="${escapeHtml(n)}" ${n===selected?'selected':''}>${escapeHtml(n)}</option>`).join('');
-}
-
 function addTaskRow() {
   const tid = 't' + Date.now() + Math.floor(Math.random()*1000);
-  editingTasks[tid] = { id: tid, name: '', assignee: '', start: document.getElementById('pStart').value || '', end: document.getElementById('pEnd').value || '', status: 'pending' };
+  editingTasks[tid] = { id: tid, name: '', assignees: [], start: document.getElementById('pStart').value || '', end: document.getElementById('pEnd').value || '', status: 'pending' };
   renderTaskRows();
 }
 function removeTaskRow(tid) { delete editingTasks[tid]; renderTaskRows(); }
 function updateTaskField(tid, field, value) { if (editingTasks[tid]) editingTasks[tid][field] = value; }
+function toggleTaskAssignee(tid, name) {
+  const t = editingTasks[tid];
+  if (!t) return;
+  t.assignees = t.assignees || [];
+  const i = t.assignees.indexOf(name);
+  if (i === -1) t.assignees.push(name); else t.assignees.splice(i, 1);
+  renderTaskRows();
+}
 
 function renderTaskRows() {
   const el = document.getElementById('taskList');
   const rows = Object.values(editingTasks);
   if (!rows.length) { el.innerHTML = '<div class="empty-state" style="padding:16px 0">No tasks yet.</div>'; return; }
+  const memberNames = Object.values(state.members||{}).map(m => m.name).sort();
   el.innerHTML = rows.map(t => `
     <div class="task-row">
-      <input type="text" placeholder="Task name" value="${escapeHtml(t.name||'')}" oninput="updateTaskField('${t.id}','name',this.value)">
-      <select onchange="updateTaskField('${t.id}','assignee',this.value)">${memberOptions(t.assignee)}</select>
-      <input type="date" value="${t.start||''}" onchange="updateTaskField('${t.id}','start',this.value)">
-      <input type="date" value="${t.end||''}" onchange="updateTaskField('${t.id}','end',this.value)">
-      <select onchange="updateTaskField('${t.id}','status',this.value)">
-        <option value="pending" ${t.status==='pending'?'selected':''}>Pending</option>
-        <option value="in-progress" ${t.status==='in-progress'?'selected':''}>In Progress</option>
-        <option value="done" ${t.status==='done'?'selected':''}>Done</option>
-      </select>
-      <button class="icon-btn" onclick="removeTaskRow('${t.id}')">✕</button>
+      <div class="task-row-top">
+        <input type="text" class="task-name" placeholder="Task name" value="${escapeHtml(t.name||'')}" oninput="updateTaskField('${t.id}','name',this.value)">
+        <select class="task-status" onchange="updateTaskField('${t.id}','status',this.value)">
+          <option value="pending" ${t.status==='pending'?'selected':''}>Pending</option>
+          <option value="in-progress" ${t.status==='in-progress'?'selected':''}>In Progress</option>
+          <option value="done" ${t.status==='done'?'selected':''}>Done</option>
+        </select>
+        <input type="date" class="task-date" value="${t.start||''}" onchange="updateTaskField('${t.id}','start',this.value)">
+        <input type="date" class="task-date" value="${t.end||''}" onchange="updateTaskField('${t.id}','end',this.value)">
+        <button class="icon-btn" onclick="removeTaskRow('${t.id}')">✕</button>
+      </div>
+      <div class="task-assignees">
+        <label>Team:</label>
+        <div class="member-grid">${memberNames.length ? memberNames.map(n => `<span class="member-chip ${(t.assignees||[]).includes(n)?'checked':''}" onclick="toggleTaskAssignee('${t.id}','${escapeHtml(n).replace(/'/g,"\\'")}')">${escapeHtml(n)}</span>`).join('') : '<span style="color:#666;font-size:11px">No members yet — add some in the Members tab</span>'}</div>
+      </div>
     </div>`).join('');
 }
 
@@ -687,7 +706,7 @@ function saveProject() {
   const tasks = {};
   Object.values(editingTasks).forEach(t => {
     if (!t.name || !t.name.trim()) return;
-    tasks[t.id] = { id: t.id, name: t.name.trim(), assignee: t.assignee||'', start: t.start||'', end: t.end||'', status: t.status||'pending' };
+    tasks[t.id] = { id: t.id, name: t.name.trim(), assignees: t.assignees||[], start: t.start||'', end: t.end||'', status: t.status||'pending' };
   });
   const proj = {
     id, name, client: document.getElementById('pClient').value.trim(),
@@ -736,7 +755,7 @@ function renderGantt() {
     const proj = state.projects[sel];
     if (proj) {
       rows = Object.values(proj.tasks||{}).filter(t => t.start && t.end).map(t => ({
-        label: t.name, sub: t.assignee||'', start: t.start, end: t.end,
+        label: t.name, sub: (t.assignees||[]).join(', '), start: t.start, end: t.end,
         status: t.status === 'done' ? 'completed' : (t.status === 'in-progress' ? 'in-progress' : 'planning'),
         progress: t.status === 'done' ? 100 : (t.status === 'in-progress' ? 50 : 0)
       }));
@@ -798,14 +817,16 @@ function renderCalendar() {
   const assign = {};
   Object.values(state.projects||{}).forEach(p => {
     Object.values(p.tasks||{}).forEach(t => {
-      if (!t.assignee || !t.start || !t.end) return;
+      if (!t.assignees || !t.assignees.length || !t.start || !t.end) return;
       const s = parseISO(t.start), e = parseISO(t.end);
       days.forEach(d => {
         if (d >= s && d <= e) {
           const iso = toISO(d);
-          assign[t.assignee] = assign[t.assignee] || {};
-          assign[t.assignee][iso] = assign[t.assignee][iso] || [];
-          assign[t.assignee][iso].push({ project: p.name, task: t.name, status: t.status === 'done' ? 'completed' : (t.status==='in-progress'?'in-progress':'planning') });
+          t.assignees.forEach(name => {
+            assign[name] = assign[name] || {};
+            assign[name][iso] = assign[name][iso] || [];
+            assign[name][iso].push({ project: p.name, task: t.name, status: t.status === 'done' ? 'completed' : (t.status==='in-progress'?'in-progress':'planning') });
+          });
         }
       });
     });
