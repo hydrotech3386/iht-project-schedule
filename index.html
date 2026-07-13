@@ -10,28 +10,48 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',sans-serif;background:#1a1a2e;color:#e0e0e0;min-height:100vh}
-header{background:#16213e;padding:12px 20px;padding-top:max(12px,calc(env(safe-area-inset-top) + 8px));display:flex;align-items:center;gap:16px;border-bottom:2px solid #0f3460;flex-wrap:wrap}
-header h1{font-size:18px;color:#e94560;font-weight:700;white-space:nowrap}
-.sync-status{display:flex;align-items:center;gap:6px;font-size:11px;color:#888}
+
+/* ---------- App shell ---------- */
+.app-shell{display:flex;min-height:100vh}
+.sidebar{width:230px;flex-shrink:0;background:#16213e;border-right:2px solid #0f3460;display:flex;flex-direction:column;padding:18px 14px;padding-top:max(18px,calc(env(safe-area-inset-top) + 10px))}
+.logo{font-size:16px;font-weight:800;color:#e94560;margin-bottom:2px;white-space:nowrap}
+.logo-sub{font-size:11px;color:#7a8bb0;margin-bottom:22px}
+.sidebar-nav{display:flex;flex-direction:column;gap:2px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;font-size:13px;font-weight:600;color:#aab4cc;cursor:pointer;user-select:none}
+.nav-item.active{background:#e94560;color:#fff}
+.nav-item:hover:not(.active){background:#0f3460;color:#fff}
+.sidebar-foot{margin-top:auto;padding-top:14px;border-top:1px solid #0f3460;display:flex;flex-direction:column;gap:10px}
+.sync-status{display:flex;align-items:center;gap:6px;font-size:11px;color:#7a8bb0}
 .sync-dot{width:8px;height:8px;border-radius:50%;background:#555}
 .sync-dot.online{background:#27ae60}
 .sync-dot.syncing{background:#d35400;animation:pulse 1s infinite}
 .sync-dot.offline{background:#e94560}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-.user-info{display:flex;align-items:center;gap:8px;font-size:12px;color:#aaa;margin-left:auto}
-.user-info b{color:#fff}
-.role-tag{background:#0f3460;padding:2px 8px;border-radius:10px;font-size:10px;text-transform:uppercase;color:#5dfc8d}
-.btn-logout{background:#0f3460;border:none;color:#aaa;padding:5px 10px;border-radius:5px;cursor:pointer;font-size:11px}
+.user-info{display:none;align-items:center;gap:8px}
+.user-info .avatar{width:30px;height:30px;border-radius:50%;background:#e94560;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0}
+.user-info b{color:#fff;font-size:12px;display:block}
+.role-tag{background:#0f3460;padding:2px 7px;border-radius:10px;font-size:9px;text-transform:uppercase;color:#5dfc8d}
+.btn-logout{background:#0f3460;border:none;color:#aab4cc;padding:7px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600}
 .btn-logout:hover{background:#e94560;color:#fff}
 
-.tabs{background:#16213e;padding:0 20px;display:flex;gap:4px;border-bottom:2px solid #0f3460;flex-wrap:wrap}
-.tab-btn{padding:10px 16px;border:none;background:none;color:#aaa;cursor:pointer;font-size:13px;font-weight:600;border-bottom:3px solid transparent}
-.tab-btn:hover{color:#fff}
-.tab-btn.active{color:#e94560;border-bottom-color:#e94560}
-.view{display:none;padding:20px}
+.main-content{flex:1;min-width:0;display:flex;flex-direction:column}
+.topbar{background:#16213e;border-bottom:2px solid #0f3460;padding:16px 26px;padding-top:max(16px,calc(env(safe-area-inset-top) + 10px));display:flex;align-items:center}
+.topbar h1{font-size:19px;color:#fff;font-weight:800}
+.view-body{padding:22px 26px;flex:1}
+.view{display:none}
 .view.active{display:block}
 
-/* Toolbar */
+@media (max-width:820px){
+  .app-shell{flex-direction:column}
+  .sidebar{width:100%;flex-direction:row;align-items:center;overflow-x:auto;padding:10px 14px}
+  .logo-sub{display:none}
+  .sidebar-nav{flex-direction:row;gap:4px}
+  .nav-item{white-space:nowrap}
+  .sidebar-foot{margin-top:0;margin-left:auto;padding-top:0;border-top:none;flex-direction:row;align-items:center}
+  .view-body{padding:16px}
+}
+
+/* ---------- Toolbar ---------- */
 .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
 .toolbar select,.toolbar input[type=text]{background:#0f3460;border:1px solid #333;color:#fff;border-radius:6px;padding:7px 10px;font-size:13px}
 button.btn{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600}
@@ -45,7 +65,37 @@ button.btn{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-si
 .btn-secondary:hover{background:#444}
 .spacer{margin-left:auto}
 
-/* Project cards */
+/* ---------- Stat tiles ---------- */
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.stat-card{background:#16213e;border:1px solid #0f3460;border-radius:12px;padding:14px 16px}
+.stat-card .num{font-size:22px;font-weight:800;color:#fff}
+.stat-card .lbl{font-size:11px;color:#7a8bb0;margin-top:2px}
+.stat-card.alert .num{color:#e94560}
+@media (max-width:640px){.stat-row{grid-template-columns:repeat(2,1fr)}}
+
+/* ---------- Month calendar ---------- */
+.cal-month-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px}
+.cal-nav{display:flex;align-items:center;gap:10px}
+.cal-nav button{background:#0f3460;border:none;color:#e0e0e0;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:13px}
+.cal-nav button:hover{background:#e94560}
+.cal-nav .month-label{font-size:16px;font-weight:800;color:#fff;min-width:140px;text-align:center}
+.month-grid{background:#16213e;border:1px solid #0f3460;border-radius:12px;overflow:hidden}
+.dow-row{display:grid;grid-template-columns:repeat(7,1fr);background:#0f3460}
+.dow-row div{padding:9px;text-align:center;font-size:11px;font-weight:700;color:#aab4cc;text-transform:uppercase}
+.week-row{display:grid;grid-template-columns:repeat(7,1fr)}
+.day-cell{border-right:1px solid #1e2d4a;border-bottom:1px solid #1e2d4a;min-height:92px;padding:6px 7px;position:relative;cursor:pointer}
+.day-cell:hover{background:#1a2440}
+.day-cell.muted{background:#141b30;color:#555}
+.day-cell.today{box-shadow:inset 0 0 0 1px #e94560}
+.day-num{font-size:12px;font-weight:700;color:#ccd3e0;margin-bottom:4px}
+.day-cell.muted .day-num{color:#3a4260}
+.day-chip{background:#0f3460;color:#4fc3f7;font-size:10px;font-weight:700;border-radius:5px;padding:2px 6px;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.day-chip.delayed{background:#3a1520;color:#ff8fa3}
+.day-chip.done{background:#123a24;color:#5dfc8d}
+.day-more{font-size:10px;color:#7a8bb0;font-weight:600}
+@media (max-width:640px){.day-cell{min-height:64px}.day-chip{font-size:9px}}
+
+/* ---------- Project cards ---------- */
 .project-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
 .project-card{background:#16213e;border:1px solid #0f3460;border-radius:10px;padding:16px;cursor:pointer;transition:border-color .15s}
 .project-card:hover{border-color:#e94560}
@@ -66,7 +116,7 @@ button.btn{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-si
 .avatar-chip{background:#0f3460;color:#5dfc8d;font-size:10px;font-weight:700;padding:3px 7px;border-radius:10px}
 .empty-state{color:#555;text-align:center;padding:60px 0;font-size:14px}
 
-/* Gantt */
+/* ---------- Gantt ---------- */
 .gantt-controls{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
 .gantt-wrap{overflow-x:auto;border:1px solid #0f3460;border-radius:8px;background:#16213e;-webkit-overflow-scrolling:touch}
 .gantt-table{border-collapse:collapse;font-size:12px}
@@ -83,7 +133,7 @@ button.btn{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-si
 .gantt-bar .fill{position:absolute;left:0;top:0;bottom:0;background:rgba(255,255,255,.28);border-radius:5px 0 0 5px}
 .gantt-bar span{position:relative;z-index:1}
 
-/* Calendar */
+/* ---------- Weekly schedule ---------- */
 .week-nav{display:flex;align-items:center;gap:8px}
 .week-nav button{background:#0f3460;border:none;color:#e0e0e0;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:13px}
 .week-nav button:hover{background:#e94560}
@@ -101,9 +151,9 @@ button.btn{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-si
 .cal-chip.status-on-hold{border-left-color:#d35400}
 .cal-chip.status-planning{border-left-color:#888}
 
-/* Members / Users */
+/* ---------- Members / Users ---------- */
 .list-panel{display:flex;flex-direction:column;gap:8px;max-width:600px}
-.list-row{background:#16213e;border:1px solid #0f3460;border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.list-row{background:#16213e;border:1px solid #0f3460;border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;cursor:pointer}
 .list-row .name{font-weight:700;color:#fff;font-size:13px}
 .list-row .meta{font-size:11px;color:#888}
 .list-row .spacer{margin-left:auto}
@@ -112,7 +162,7 @@ button.btn{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-si
 .icon-btn{background:#0f3460;border:none;color:#aaa;width:26px;height:26px;border-radius:5px;cursor:pointer;font-size:12px}
 .icon-btn:hover{background:#e94560;color:#fff}
 
-/* Modal */
+/* ---------- Modal ---------- */
 .modal-bg{display:flex;position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(0,0,0,.7);z-index:100;align-items:center;justify-content:center;visibility:hidden;pointer-events:none;opacity:0;transition:opacity .2s;padding:16px}
 .modal-bg.open{visibility:visible;pointer-events:auto;opacity:1}
 .modal{background:#16213e;border:1px solid #0f3460;border-radius:10px;padding:22px;width:100%;max-width:640px;max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
@@ -126,7 +176,7 @@ button.btn{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-si
 .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap}
 .err-msg{color:#e94560;font-size:12px;margin-top:6px;min-height:14px}
 
-/* Tasks in project modal */
+/* ---------- Tasks/Jobs in project modal ---------- */
 .task-list{display:flex;flex-direction:column;gap:8px;margin:10px 0}
 .task-row{background:#0f3460;border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:8px}
 .task-row input,.task-row select{background:#16213e;border:1px solid #333;color:#fff;border-radius:5px;padding:6px 8px;font-size:12px}
@@ -144,7 +194,7 @@ button.btn{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-si
 @media (max-width:640px){.form-grid{grid-template-columns:1fr}}
 .progress-mode-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:12px;color:#aaa}
 
-/* Auth overlay */
+/* ---------- Auth overlay ---------- */
 .auth-overlay{display:flex;position:fixed;top:0;right:0;bottom:0;left:0;background:#1a1a2e;z-index:200;align-items:center;justify-content:center;padding:16px;visibility:hidden;opacity:0;transition:opacity .2s}
 .auth-overlay.open{visibility:visible;opacity:1}
 .auth-box{background:#16213e;border:1px solid #0f3460;border-radius:12px;padding:28px;width:100%;max-width:380px}
@@ -191,66 +241,117 @@ button.btn{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-si
   </div>
 </div>
 
-<header>
-  <h1>🛠️ Project Schedule</h1>
-  <div class="sync-status"><div class="sync-dot" id="syncDot"></div><span id="syncLabel">offline</span></div>
-  <div class="user-info" id="userInfo" style="display:none">
-    <b id="userName"></b><span class="role-tag" id="userRoleTag"></span>
-    <button class="btn-logout" onclick="logoutUser()">Log Out</button>
+<div class="app-shell">
+  <div class="sidebar">
+    <div class="logo">🛠️ Project Schedule</div>
+    <div class="logo-sub">Hydrotech M&amp;E Team</div>
+    <div class="sidebar-nav">
+      <div class="nav-item active" data-view="calendar" onclick="switchView('calendar')">📅 Calendar</div>
+      <div class="nav-item" data-view="weekly" onclick="switchView('weekly')">🗓️ Weekly Schedule</div>
+      <div class="nav-item" data-view="ongoing" onclick="switchView('ongoing')">📋 On-going Projects</div>
+      <div class="nav-item" data-view="completed" onclick="switchView('completed')">✅ Completed Projects</div>
+      <div class="nav-item" data-view="gantt" onclick="switchView('gantt')">📈 Gantt</div>
+      <div class="nav-item" data-view="members" onclick="switchView('members')">👷 Members</div>
+      <div class="nav-item needs-edit role-admin-only hidden" id="navUsers" data-view="users" onclick="switchView('users')">🔑 Users</div>
+    </div>
+    <div class="sidebar-foot">
+      <div class="sync-status"><div class="sync-dot" id="syncDot"></div><span id="syncLabel">offline</span></div>
+      <div class="user-info" id="userInfo">
+        <div class="avatar" id="userAvatar"></div>
+        <div><b id="userName"></b><span class="role-tag" id="userRoleTag"></span></div>
+      </div>
+      <button class="btn-logout" id="btnLogout" onclick="logoutUser()" style="display:none">Log Out</button>
+    </div>
   </div>
-</header>
 
-<div class="tabs">
-  <button class="tab-btn active" data-view="projects" onclick="switchView('projects')">📋 Projects</button>
-  <button class="tab-btn" data-view="gantt" onclick="switchView('gantt')">📊 Gantt</button>
-  <button class="tab-btn" data-view="calendar" onclick="switchView('calendar')">📅 Team Calendar</button>
-  <button class="tab-btn" data-view="members" onclick="switchView('members')">👷 Members</button>
-  <button class="tab-btn needs-edit role-admin-only hidden" data-view="users" id="tabUsers" onclick="switchView('users')">🔑 Users</button>
-</div>
+  <div class="main-content">
+    <div class="topbar"><h1 id="pageTitle">Team Calendar</h1></div>
+    <div class="view-body">
 
-<div class="view active" id="view-projects">
-  <div class="toolbar">
-    <select id="filterStatus" onchange="renderProjects()">
-      <option value="">All Status</option>
-      <option value="planning">Planning</option>
-      <option value="in-progress">In Progress</option>
-      <option value="delayed">Delayed</option>
-      <option value="on-hold">On Hold</option>
-      <option value="completed">Completed</option>
-    </select>
-    <input type="text" id="searchProjects" placeholder="Search projects..." oninput="renderProjects()">
-    <button class="btn btn-add needs-edit" onclick="openProjectModal()">+ New Project</button>
+      <div class="view active" id="view-calendar">
+        <div class="stat-row">
+          <div class="stat-card"><div class="num" id="statOngoing">0</div><div class="lbl">On-going Projects</div></div>
+          <div class="stat-card"><div class="num" id="statOnSite">0</div><div class="lbl">Team On Site Today</div></div>
+          <div class="stat-card"><div class="num" id="statJobsWeek">0</div><div class="lbl">Jobs This Week</div></div>
+          <div class="stat-card alert"><div class="num" id="statDelayed">0</div><div class="lbl">Delayed</div></div>
+        </div>
+        <div class="cal-month-toolbar">
+          <div class="cal-nav">
+            <button onclick="monthPrev()">‹</button>
+            <span class="month-label" id="monthLabel"></span>
+            <button onclick="monthNext()">›</button>
+            <button onclick="monthToday()">This Month</button>
+          </div>
+          <div>
+            <button class="btn btn-secondary needs-edit" onclick="openProjectModal()">+ New Project</button>
+            <button class="btn btn-add needs-edit" onclick="openJobModal()">+ Add Job</button>
+          </div>
+        </div>
+        <div class="month-grid">
+          <div class="dow-row"><div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div></div>
+          <div id="monthWeeks"></div>
+        </div>
+      </div>
+
+      <div class="view" id="view-weekly">
+        <div class="cal-month-toolbar">
+          <div class="week-nav">
+            <button onclick="weekPrev()">◀ Prev</button>
+            <span class="week-label" id="calWeekLabel"></span>
+            <button onclick="weekNext()">Next ▶</button>
+            <button onclick="weekToday()">This Week</button>
+          </div>
+          <div>
+            <button class="btn btn-secondary needs-edit" onclick="openProjectModal()">+ New Project</button>
+            <button class="btn btn-add needs-edit" onclick="openJobModal()">+ Add Job</button>
+          </div>
+        </div>
+        <div class="cal-wrap"><table class="cal-table" id="calTable"></table></div>
+      </div>
+
+      <div class="view" id="view-ongoing">
+        <div class="toolbar">
+          <select id="filterOngoingStatus" onchange="renderOngoingProjects()">
+            <option value="">All Status</option>
+            <option value="planning">Planning</option>
+            <option value="in-progress">In Progress</option>
+            <option value="delayed">Delayed</option>
+            <option value="on-hold">On Hold</option>
+          </select>
+          <input type="text" id="searchOngoing" placeholder="Search projects..." oninput="renderOngoingProjects()">
+          <button class="btn btn-add needs-edit" onclick="openProjectModal()">+ New Project</button>
+        </div>
+        <div class="project-grid" id="ongoingGrid"></div>
+      </div>
+
+      <div class="view" id="view-completed">
+        <div class="toolbar">
+          <input type="text" id="searchCompleted" placeholder="Search completed projects..." oninput="renderCompletedProjects()">
+        </div>
+        <div class="project-grid" id="completedGrid"></div>
+      </div>
+
+      <div class="view" id="view-gantt">
+        <div class="gantt-controls">
+          <select id="ganttProjectSelect" onchange="renderGantt()">
+            <option value="all">All Projects (Portfolio)</option>
+          </select>
+          <div class="spacer"></div>
+        </div>
+        <div class="gantt-wrap"><div id="ganttContent"></div></div>
+      </div>
+
+      <div class="view" id="view-members">
+        <div class="toolbar"><button class="btn btn-add needs-edit" onclick="openMemberModal()">+ Add Member</button></div>
+        <div class="list-panel" id="memberList"></div>
+      </div>
+
+      <div class="view" id="view-users">
+        <div class="list-panel" id="userList"></div>
+      </div>
+
+    </div>
   </div>
-  <div class="project-grid" id="projectGrid"></div>
-</div>
-
-<div class="view" id="view-gantt">
-  <div class="gantt-controls">
-    <select id="ganttProjectSelect" onchange="renderGantt()">
-      <option value="all">All Projects (Portfolio)</option>
-    </select>
-    <div class="spacer"></div>
-  </div>
-  <div class="gantt-wrap"><div id="ganttContent"></div></div>
-</div>
-
-<div class="view" id="view-calendar">
-  <div class="week-nav">
-    <button onclick="calPrevWeek()">◀ Prev</button>
-    <span class="week-label" id="calWeekLabel"></span>
-    <button onclick="calNextWeek()">Next ▶</button>
-    <button onclick="calThisWeek()">This Week</button>
-  </div>
-  <div class="cal-wrap"><table class="cal-table" id="calTable"></table></div>
-</div>
-
-<div class="view" id="view-members">
-  <div class="toolbar"><button class="btn btn-add needs-edit" onclick="openMemberModal()">+ Add Member</button></div>
-  <div class="list-panel" id="memberList"></div>
-</div>
-
-<div class="view" id="view-users">
-  <div class="list-panel" id="userList"></div>
 </div>
 
 <!-- Project Modal -->
@@ -280,19 +381,62 @@ button.btn{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-si
     </div>
     <div class="form-row"><label>Notes</label><textarea id="pNotes"></textarea></div>
 
-    <label style="display:block;font-size:12px;color:#aaa;margin:14px 0 6px">Tasks</label>
+    <label style="display:block;font-size:12px;color:#aaa;margin:14px 0 6px">Jobs</label>
     <div class="progress-mode-row">
       <label style="display:flex;align-items:center;gap:5px;margin:0"><input type="checkbox" id="pManualProgress" onchange="toggleManualProgress()" style="width:auto"> Manual progress override</label>
       <input type="number" id="pManualProgressVal" min="0" max="100" style="width:70px;display:none;background:#0f3460;border:1px solid #333;color:#fff;border-radius:5px;padding:5px 8px" placeholder="%">
     </div>
     <div class="task-list" id="taskList"></div>
-    <button class="btn btn-secondary" type="button" onclick="addTaskRow()">+ Add Task</button>
+    <button class="btn btn-secondary" type="button" onclick="addTaskRow()">+ Add Job</button>
 
     <div class="err-msg" id="projectError"></div>
     <div class="modal-actions">
       <button class="btn btn-danger hidden" id="btnDeleteProject" onclick="deleteProjectConfirm()">Delete Project</button>
       <button class="btn btn-secondary" onclick="closeProjectModal()">Cancel</button>
       <button class="btn btn-primary" onclick="saveProject()">Save Project</button>
+    </div>
+  </div>
+</div>
+
+<!-- Job Modal (quick add/edit) -->
+<div class="modal-bg" id="jobModalBg">
+  <div class="modal" style="max-width:480px">
+    <h2 id="jobModalTitle">Add Job</h2>
+    <input type="hidden" id="jobProjId">
+    <input type="hidden" id="jobTaskId">
+    <div class="form-row"><label>Project</label><select id="jobProjectSelect"></select></div>
+    <div class="form-row"><label>Job / Site</label><input type="text" id="jobName" placeholder="e.g. LAP Bota, Panel wiring"></div>
+    <div class="form-grid">
+      <div class="form-row"><label>Date</label><input type="date" id="jobDate"></div>
+      <div class="form-row"><label>Status</label>
+        <select id="jobStatus">
+          <option value="pending">Pending</option>
+          <option value="in-progress">In Progress</option>
+          <option value="done">Done</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <label>Team</label>
+      <div class="member-grid" id="jobMemberGrid"></div>
+    </div>
+    <div class="err-msg" id="jobError"></div>
+    <div class="modal-actions">
+      <button class="btn btn-danger hidden" id="btnDeleteJob" onclick="deleteJobConfirm()">Delete</button>
+      <button class="btn btn-secondary" onclick="closeJobModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveJob()">Save Job</button>
+    </div>
+  </div>
+</div>
+
+<!-- Day Detail Modal -->
+<div class="modal-bg" id="dayDetailModalBg">
+  <div class="modal" style="max-width:480px">
+    <h2 id="dayDetailTitle">Jobs</h2>
+    <div class="list-panel" id="dayDetailList"></div>
+    <div class="modal-actions">
+      <button class="btn btn-add needs-edit" id="btnAddJobForDay" onclick="addJobForDetailDay()">+ Add Job</button>
+      <button class="btn btn-secondary" onclick="closeDayDetailModal()">Close</button>
     </div>
   </div>
 </div>
@@ -333,12 +477,16 @@ const STORAGE_KEY = 'hydrotech_project_schedule_v1';
 const VIEW_ONLY = new URLSearchParams(location.search).has('view');
 const STATUS_LABELS = {planning:'Planning','in-progress':'In Progress',delayed:'Delayed','on-hold':'On Hold',completed:'Completed'};
 const STATUS_COLORS = {planning:'#7f8c8d','in-progress':'#2980b9',delayed:'#e94560','on-hold':'#d35400',completed:'#27ae60'};
+const VIEW_TITLES = {calendar:'Team Calendar',weekly:'Weekly Schedule',ongoing:'On-going Projects',completed:'Completed Projects',gantt:'Gantt Chart',members:'Team Members',users:'User Management'};
 
 let state = { projects: {}, members: {} };
 let currentUser = null, currentRole = 'view-only';
 let fbReady = false, fbRef = null, fbUsersRef = null;
 let calWeekStart = mondayOf(new Date());
-let editingTasks = {}; // taskId -> task object while editing in modal
+let monthCursor = startOfMonth(new Date());
+let editingTasks = {}; // taskId -> task object while editing in project modal
+let jobSelectedAssignees = [];
+let currentDayDetailDate = null;
 
 // ---------- Date helpers ----------
 function pad2(n){ return String(n).padStart(2,'0'); }
@@ -347,8 +495,11 @@ function parseISO(s){ if(!s) return null; const [y,m,d]=s.split('-').map(Number)
 function addDays(d, n){ const r = new Date(d); r.setDate(r.getDate()+n); return r; }
 function daysBetween(a,b){ return Math.round((b-a)/86400000); }
 function mondayOf(d){ const r = new Date(d); const day = r.getDay(); const diff = day===0?-6:1-day; r.setDate(r.getDate()+diff); r.setHours(0,0,0,0); return r; }
+function startOfMonth(d){ return new Date(d.getFullYear(), d.getMonth(), 1); }
+function addMonths(d, n){ return new Date(d.getFullYear(), d.getMonth()+n, 1); }
 function fmtShort(d){ return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'}); }
 function fmtRange(a,b){ if(!a && !b) return '—'; if(!b) return fmtShort(parseISO(a)); return fmtShort(parseISO(a))+' – '+fmtShort(parseISO(b)); }
+function initials(name){ return String(name||'').trim().split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase(); }
 
 // ---------- Firebase ----------
 const FB_CONFIG = {
@@ -459,6 +610,7 @@ function logoutUser() {
   firebase.auth().signOut().then(() => {
     currentUser = null;
     document.getElementById('userInfo').style.display = 'none';
+    document.getElementById('btnLogout').style.display = 'none';
     document.getElementById('pendingOverlay').classList.remove('open');
     document.getElementById('pendingOverlay').classList.add('hidden');
     if (!VIEW_ONLY) {
@@ -485,7 +637,7 @@ function getAuthError(code) {
 function applyRole(role) {
   currentRole = role;
   document.body.classList.remove('view-only','role-admin','role-engineer','role-technician');
-  document.getElementById('tabUsers').classList.toggle('hidden', role !== 'admin');
+  document.getElementById('navUsers').classList.toggle('hidden', role !== 'admin');
   if (role === 'admin') document.body.classList.add('role-admin');
   else if (role === 'engineer') document.body.classList.add('role-engineer');
   else if (role === 'technician') document.body.classList.add('role-technician');
@@ -521,8 +673,10 @@ function initAuth() {
         document.getElementById('pendingOverlay').classList.add('hidden');
         applyRole(data.role);
         document.getElementById('userInfo').style.display = 'flex';
+        document.getElementById('userAvatar').textContent = initials(currentUser.name);
         document.getElementById('userName').textContent = currentUser.name;
         document.getElementById('userRoleTag').textContent = data.role;
+        document.getElementById('btnLogout').style.display = 'block';
         listenToData();
         listenToUsers();
       });
@@ -556,7 +710,7 @@ function renderUsers() {
   const rows = Object.entries(usersData).sort((a,b) => (a[1].name||'').localeCompare(b[1].name||''));
   if (!rows.length) { el.innerHTML = '<div class="empty-state">No users yet.</div>'; return; }
   el.innerHTML = rows.map(([uid, u]) => `
-    <div class="list-row ${u.role==='pending'?'pending-row':''}">
+    <div class="list-row ${u.role==='pending'?'pending-row':''}" style="cursor:default">
       <div><div class="name">${escapeHtml(u.name||'(no name)')}</div><div class="meta">${escapeHtml(u.email||'')}</div></div>
       <div class="spacer"></div>
       <select onchange="setUserRole('${uid}', this.value)">
@@ -572,19 +726,25 @@ function renderUsers() {
 
 // ---------- View switching ----------
 function switchView(name) {
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.view === name));
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.view === name));
   document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + name));
+  document.getElementById('pageTitle').textContent = VIEW_TITLES[name] || '';
   if (name === 'gantt') renderGantt();
-  if (name === 'calendar') renderCalendar();
+  if (name === 'calendar') renderMonthCalendar();
+  if (name === 'weekly') renderWeeklySchedule();
+  if (name === 'ongoing') renderOngoingProjects();
+  if (name === 'completed') renderCompletedProjects();
   if (name === 'members') renderMembers();
   if (name === 'users') renderUsers();
 }
 
 function renderAll() {
-  renderProjects();
+  renderOngoingProjects();
+  renderCompletedProjects();
   populateGanttSelect();
   renderGantt();
-  renderCalendar();
+  renderMonthCalendar();
+  renderWeeklySchedule();
   renderMembers();
 }
 
@@ -597,16 +757,10 @@ function computeProgress(proj) {
   return Math.round((done / tasks.length) * 100);
 }
 
-// ---------- Projects list ----------
-function renderProjects() {
-  const el = document.getElementById('projectGrid');
-  const filterStatus = document.getElementById('filterStatus').value;
-  const search = document.getElementById('searchProjects').value.toLowerCase();
-  let list = Object.values(state.projects || {});
-  if (filterStatus) list = list.filter(p => p.status === filterStatus);
-  if (search) list = list.filter(p => (p.name||'').toLowerCase().includes(search) || (p.client||'').toLowerCase().includes(search) || (p.site||'').toLowerCase().includes(search));
-  list.sort((a,b) => (a.startDate||'').localeCompare(b.startDate||''));
-  if (!list.length) { el.innerHTML = '<div class="empty-state">No projects found. Click "+ New Project" to start planning.</div>'; return; }
+// ---------- Projects: On-going / Completed ----------
+function renderProjectGrid(elId, list) {
+  const el = document.getElementById(elId);
+  if (!list.length) { el.innerHTML = '<div class="empty-state">No projects found.</div>'; return; }
   el.innerHTML = list.map(p => {
     const progress = computeProgress(p);
     const team = [...new Set(Object.values(p.tasks||{}).flatMap(t => t.assignees||[]))].sort();
@@ -618,10 +772,29 @@ function renderProjects() {
       </div>
       <div class="pc-dates">${fmtRange(p.startDate, p.endDate)}</div>
       <div class="pc-progress-bar"><div class="pc-progress-fill" style="width:${progress}%;background:${STATUS_COLORS[p.status]||'#27ae60'}"></div></div>
-      <div class="pc-progress-label"><span>${Object.keys(p.tasks||{}).length} tasks</span><span>${progress}%</span></div>
+      <div class="pc-progress-label"><span>${Object.keys(p.tasks||{}).length} jobs</span><span>${progress}%</span></div>
       ${team.length ? `<div class="pc-team">${team.map(t => `<span class="avatar-chip">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
     </div>`;
   }).join('');
+}
+
+function renderOngoingProjects() {
+  const filterStatus = document.getElementById('filterOngoingStatus').value;
+  const search = document.getElementById('searchOngoing').value.toLowerCase();
+  let list = Object.values(state.projects || {}).filter(p => p.status !== 'completed');
+  if (filterStatus) list = list.filter(p => p.status === filterStatus);
+  if (search) list = list.filter(p => (p.name||'').toLowerCase().includes(search) || (p.client||'').toLowerCase().includes(search) || (p.site||'').toLowerCase().includes(search));
+  list.sort((a,b) => (a.startDate||'').localeCompare(b.startDate||''));
+  renderProjectGrid('ongoingGrid', list);
+  document.getElementById('statOngoing').textContent = Object.values(state.projects||{}).filter(p => p.status !== 'completed').length;
+}
+
+function renderCompletedProjects() {
+  const search = document.getElementById('searchCompleted').value.toLowerCase();
+  let list = Object.values(state.projects || {}).filter(p => p.status === 'completed');
+  if (search) list = list.filter(p => (p.name||'').toLowerCase().includes(search) || (p.client||'').toLowerCase().includes(search) || (p.site||'').toLowerCase().includes(search));
+  list.sort((a,b) => (b.startDate||'').localeCompare(a.startDate||''));
+  renderProjectGrid('completedGrid', list);
 }
 
 // ---------- Project modal ----------
@@ -672,12 +845,12 @@ function toggleTaskAssignee(tid, name) {
 function renderTaskRows() {
   const el = document.getElementById('taskList');
   const rows = Object.values(editingTasks);
-  if (!rows.length) { el.innerHTML = '<div class="empty-state" style="padding:16px 0">No tasks yet.</div>'; return; }
+  if (!rows.length) { el.innerHTML = '<div class="empty-state" style="padding:16px 0">No jobs yet.</div>'; return; }
   const memberNames = Object.values(state.members||{}).map(m => m.name).sort();
   el.innerHTML = rows.map(t => `
     <div class="task-row">
       <div class="task-row-top">
-        <input type="text" class="task-name" placeholder="Task name" value="${escapeHtml(t.name||'')}" oninput="updateTaskField('${t.id}','name',this.value)">
+        <input type="text" class="task-name" placeholder="Job name" value="${escapeHtml(t.name||'')}" oninput="updateTaskField('${t.id}','name',this.value)">
         <select class="task-status" onchange="updateTaskField('${t.id}','status',this.value)">
           <option value="pending" ${t.status==='pending'?'selected':''}>Pending</option>
           <option value="in-progress" ${t.status==='in-progress'?'selected':''}>In Progress</option>
@@ -727,10 +900,76 @@ function saveProject() {
 function deleteProjectConfirm() {
   const id = document.getElementById('projId').value;
   if (!id) return;
-  showConfirm('Delete Project', 'This will permanently delete the project and all its tasks. Continue?', () => {
+  showConfirm('Delete Project', 'This will permanently delete the project and all its jobs. Continue?', () => {
     fbRemove('projects/' + id);
     closeConfirmModal();
     closeProjectModal();
+  });
+}
+
+// ---------- Job modal (quick add/edit, separate from project editor) ----------
+function populateJobProjectSelect(selectedId) {
+  const sel = document.getElementById('jobProjectSelect');
+  const list = Object.values(state.projects||{}).sort((a,b) => (a.name||'').localeCompare(b.name||''));
+  sel.innerHTML = list.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+  if (selectedId) sel.value = selectedId;
+}
+
+function openJobModal(taskId, projId, dateHint) {
+  document.getElementById('jobError').textContent = '';
+  populateJobProjectSelect(projId);
+  const proj = projId ? state.projects[projId] : null;
+  const task = (proj && taskId) ? proj.tasks[taskId] : null;
+  document.getElementById('jobProjId').value = projId || '';
+  document.getElementById('jobTaskId').value = taskId || '';
+  document.getElementById('jobModalTitle').textContent = task ? 'Edit Job' : 'Add Job';
+  document.getElementById('jobName').value = task ? task.name||'' : '';
+  document.getElementById('jobDate').value = task ? (task.start||'') : (dateHint || toISO(new Date()));
+  document.getElementById('jobStatus').value = task ? task.status||'pending' : 'pending';
+  jobSelectedAssignees = task ? [...(task.assignees||[])] : [];
+  document.getElementById('btnDeleteJob').classList.toggle('hidden', !task);
+  renderJobMemberGrid();
+  document.getElementById('jobModalBg').classList.add('open');
+}
+function closeJobModal(){ document.getElementById('jobModalBg').classList.remove('open'); }
+
+function renderJobMemberGrid() {
+  const el = document.getElementById('jobMemberGrid');
+  const memberNames = Object.values(state.members||{}).map(m => m.name).sort();
+  if (!memberNames.length) { el.innerHTML = '<span style="color:#666;font-size:11px">No members yet — add some in the Members tab</span>'; return; }
+  el.innerHTML = memberNames.map(n => `<span class="member-chip ${jobSelectedAssignees.includes(n)?'checked':''}" onclick="toggleJobAssignee('${escapeHtml(n).replace(/'/g,"\\'")}')">${escapeHtml(n)}</span>`).join('');
+}
+function toggleJobAssignee(name) {
+  const i = jobSelectedAssignees.indexOf(name);
+  if (i === -1) jobSelectedAssignees.push(name); else jobSelectedAssignees.splice(i, 1);
+  renderJobMemberGrid();
+}
+
+function saveJob() {
+  const errEl = document.getElementById('jobError');
+  const projId = document.getElementById('jobProjectSelect').value;
+  const name = document.getElementById('jobName').value.trim();
+  const date = document.getElementById('jobDate').value;
+  if (!projId) { errEl.textContent = 'Please select a project.'; return; }
+  if (!name) { errEl.textContent = 'Job / site name is required.'; return; }
+  if (!date) { errEl.textContent = 'Please choose a date.'; return; }
+  let taskId = document.getElementById('jobTaskId').value;
+  const prevProjId = document.getElementById('jobProjId').value;
+  if (!taskId) taskId = 't' + Date.now() + Math.floor(Math.random()*1000);
+  const task = { id: taskId, name, assignees: [...jobSelectedAssignees], start: date, end: date, status: document.getElementById('jobStatus').value };
+  if (prevProjId && prevProjId !== projId) fbRemove('projects/' + prevProjId + '/tasks/' + taskId);
+  fbSet('projects/' + projId + '/tasks/' + taskId, task);
+  closeJobModal();
+}
+
+function deleteJobConfirm() {
+  const projId = document.getElementById('jobProjId').value;
+  const taskId = document.getElementById('jobTaskId').value;
+  if (!projId || !taskId) return;
+  showConfirm('Delete Job', 'Remove this job entry?', () => {
+    fbRemove('projects/' + projId + '/tasks/' + taskId);
+    closeConfirmModal();
+    closeJobModal();
   });
 }
 
@@ -761,7 +1000,7 @@ function renderGantt() {
       }));
     }
   }
-  if (!rows.length) { el.innerHTML = '<div class="empty-state">No dated items to show. Add start/end dates to projects or tasks.</div>'; return; }
+  if (!rows.length) { el.innerHTML = '<div class="empty-state">No dated items to show. Add start/end dates to projects or jobs.</div>'; return; }
 
   let minD = parseISO(rows[0].start), maxD = parseISO(rows[0].end);
   rows.forEach(r => { const s = parseISO(r.start), e = parseISO(r.end); if (s < minD) minD = s; if (e > maxD) maxD = e; });
@@ -801,19 +1040,113 @@ function renderGantt() {
   el.innerHTML = html;
 }
 
-// ---------- Team calendar ----------
-function calPrevWeek(){ calWeekStart = addDays(calWeekStart,-7); renderCalendar(); }
-function calNextWeek(){ calWeekStart = addDays(calWeekStart,7); renderCalendar(); }
-function calThisWeek(){ calWeekStart = mondayOf(new Date()); renderCalendar(); }
+// ---------- Month calendar (home page) ----------
+function monthPrev(){ monthCursor = addMonths(monthCursor,-1); renderMonthCalendar(); }
+function monthNext(){ monthCursor = addMonths(monthCursor,1); renderMonthCalendar(); }
+function monthToday(){ monthCursor = startOfMonth(new Date()); renderMonthCalendar(); }
 
-function renderCalendar() {
+function buildJobsByDate() {
+  // dateISO -> [ {projId, taskId, project, task, assignees, status, projStatus} ]
+  const byDate = {};
+  Object.values(state.projects||{}).forEach(p => {
+    Object.values(p.tasks||{}).forEach(t => {
+      if (!t.start || !t.end) return;
+      const s = parseISO(t.start), e = parseISO(t.end);
+      let d = new Date(s);
+      while (d <= e) {
+        const iso = toISO(d);
+        byDate[iso] = byDate[iso] || [];
+        byDate[iso].push({ projId: p.id, taskId: t.id, project: p.name, task: t.name, assignees: t.assignees||[], status: t.status, projStatus: p.status });
+        d = addDays(d, 1);
+      }
+    });
+  });
+  return byDate;
+}
+
+function renderMonthCalendar() {
+  document.getElementById('monthLabel').textContent = monthCursor.toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+  const year = monthCursor.getFullYear(), month = monthCursor.getMonth();
+  const firstDow = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const gridStart = addDays(new Date(year, month, 1), -firstDow);
+  const totalCells = Math.ceil((firstDow + daysInMonth) / 7) * 7;
+  const todayISO = toISO(new Date());
+  const jobsByDate = buildJobsByDate();
+
+  let html = '';
+  for (let w = 0; w < totalCells / 7; w++) {
+    html += '<div class="week-row">';
+    for (let d = 0; d < 7; d++) {
+      const day = addDays(gridStart, w*7 + d);
+      const iso = toISO(day);
+      const muted = day.getMonth() !== month;
+      const jobs = jobsByDate[iso] || [];
+      const shown = jobs.slice(0, 3);
+      html += `<div class="day-cell ${muted?'muted':''} ${iso===todayISO?'today':''}" onclick="openDayDetail('${iso}')">
+        <div class="day-num">${day.getDate()}</div>
+        ${shown.map(j => `<div class="day-chip ${j.projStatus==='delayed'?'delayed':(j.status==='done'?'done':'')}">${escapeHtml(j.task||j.project)}</div>`).join('')}
+        ${jobs.length > 3 ? `<div class="day-more">+${jobs.length-3} more</div>` : ''}
+      </div>`;
+    }
+    html += '</div>';
+  }
+  document.getElementById('monthWeeks').innerHTML = html;
+
+  // Stats
+  const projects = Object.values(state.projects||{});
+  document.getElementById('statOngoing').textContent = projects.filter(p => p.status !== 'completed').length;
+  document.getElementById('statDelayed').textContent = projects.filter(p => p.status === 'delayed').length;
+  const onSite = new Set((jobsByDate[todayISO]||[]).flatMap(j => j.assignees));
+  document.getElementById('statOnSite').textContent = onSite.size;
+  const weekStart = mondayOf(new Date()), weekEnd = addDays(weekStart, 5);
+  let jobsThisWeek = 0;
+  Object.values(state.projects||{}).forEach(p => Object.values(p.tasks||{}).forEach(t => {
+    if (!t.start || !t.end) return;
+    const s = parseISO(t.start), e = parseISO(t.end);
+    if (s <= weekEnd && e >= weekStart) jobsThisWeek++;
+  }));
+  document.getElementById('statJobsWeek').textContent = jobsThisWeek;
+}
+
+function openDayDetail(iso) {
+  currentDayDetailDate = iso;
+  const d = parseISO(iso);
+  document.getElementById('dayDetailTitle').textContent = 'Jobs — ' + d.toLocaleDateString('en-GB',{weekday:'long',day:'2-digit',month:'short',year:'numeric'});
+  const jobsByDate = buildJobsByDate();
+  const jobs = (jobsByDate[iso] || []).sort((a,b) => a.project.localeCompare(b.project));
+  const el = document.getElementById('dayDetailList');
+  if (!jobs.length) { el.innerHTML = '<div class="empty-state" style="padding:20px 0">No jobs scheduled this day.</div>'; }
+  else {
+    el.innerHTML = jobs.map(j => `
+      <div class="list-row" onclick="closeDayDetailModal();openJobModal('${j.taskId}','${j.projId}')">
+        <div><div class="name">${escapeHtml(j.task)}</div><div class="meta">${escapeHtml(j.project)}${j.assignees.length?' · '+escapeHtml(j.assignees.join(', ')):''}</div></div>
+        <div class="spacer"></div>
+        <span class="status-badge status-${j.status==='done'?'completed':(j.status==='in-progress'?'in-progress':'planning')}">${j.status}</span>
+      </div>`).join('');
+  }
+  document.getElementById('dayDetailModalBg').classList.add('open');
+}
+function closeDayDetailModal(){ document.getElementById('dayDetailModalBg').classList.remove('open'); }
+function addJobForDetailDay() {
+  const d = currentDayDetailDate;
+  closeDayDetailModal();
+  openJobModal(null, null, d);
+}
+
+// ---------- Weekly schedule ----------
+function weekPrev(){ calWeekStart = addDays(calWeekStart,-7); renderWeeklySchedule(); }
+function weekNext(){ calWeekStart = addDays(calWeekStart,7); renderWeeklySchedule(); }
+function weekToday(){ calWeekStart = mondayOf(new Date()); renderWeeklySchedule(); }
+
+function renderWeeklySchedule() {
   const days = []; for (let i=0;i<6;i++) days.push(addDays(calWeekStart,i)); // Mon-Sat
   document.getElementById('calWeekLabel').textContent = fmtShort(days[0]) + ' – ' + fmtShort(days[5]);
   const members = Object.values(state.members||{}).filter(m => m.active !== false).sort((a,b) => a.name.localeCompare(b.name));
   const table = document.getElementById('calTable');
   if (!members.length) { table.innerHTML = '<tr><td class="empty-state">No members added yet.</td></tr>'; return; }
 
-  // Build assignments: memberName -> dayISO -> [ {project, task, status} ]
+  // Build assignments: memberName -> dayISO -> [ {project, task, status, projId, taskId} ]
   const assign = {};
   Object.values(state.projects||{}).forEach(p => {
     Object.values(p.tasks||{}).forEach(t => {
@@ -825,7 +1158,7 @@ function renderCalendar() {
           t.assignees.forEach(name => {
             assign[name] = assign[name] || {};
             assign[name][iso] = assign[name][iso] || [];
-            assign[name][iso].push({ project: p.name, task: t.name, status: t.status === 'done' ? 'completed' : (t.status==='in-progress'?'in-progress':'planning') });
+            assign[name][iso].push({ project: p.name, task: t.name, status: t.status === 'done' ? 'completed' : (t.status==='in-progress'?'in-progress':'planning'), projId: p.id, taskId: t.id });
           });
         }
       });
@@ -840,7 +1173,7 @@ function renderCalendar() {
     days.forEach(d => {
       const iso = toISO(d);
       const items = (assign[m.name] && assign[m.name][iso]) || [];
-      html += `<td>${items.map(it => `<div class="cal-chip status-${it.status}"><b>${escapeHtml(it.project)}</b>${escapeHtml(it.task)}</div>`).join('') || ''}</td>`;
+      html += `<td>${items.map(it => `<div class="cal-chip status-${it.status}" onclick="openJobModal('${it.taskId}','${it.projId}')"><b>${escapeHtml(it.project)}</b>${escapeHtml(it.task)}</div>`).join('') || ''}</td>`;
     });
     html += '</tr>';
   });
@@ -854,10 +1187,10 @@ function renderMembers() {
   const list = Object.values(state.members||{}).sort((a,b) => a.name.localeCompare(b.name));
   if (!list.length) { el.innerHTML = '<div class="empty-state">No members yet. Add your M&E team.</div>'; return; }
   el.innerHTML = list.map(m => `
-    <div class="list-row">
+    <div class="list-row" onclick="openMemberModal('${m.id}')">
       <div><div class="name">${escapeHtml(m.name)}</div><div class="meta">${escapeHtml(m.trade||'')}</div></div>
       <div class="spacer"></div>
-      <button class="icon-btn needs-edit" onclick="openMemberModal('${m.id}')">✎</button>
+      <button class="icon-btn needs-edit" onclick="event.stopPropagation();openMemberModal('${m.id}')">✎</button>
     </div>`).join('');
 }
 
@@ -883,7 +1216,7 @@ function saveMember() {
 function deleteMemberConfirm() {
   const id = document.getElementById('memberId').value;
   if (!id) return;
-  showConfirm('Remove Member', 'Remove this team member? Existing task assignments will keep the name as text.', () => {
+  showConfirm('Remove Member', 'Remove this team member? Existing job assignments will keep the name as text.', () => {
     fbRemove('members/' + id);
     closeConfirmModal();
     closeMemberModal();
