@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#16213e">
+<title>Project Schedule — Hydrotech</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',sans-serif;background:#1a1a2e;color:#e0e0e0;min-height:100vh}
+header{background:#16213e;padding:12px 20px;padding-top:max(12px,calc(env(safe-area-inset-top) + 8px));display:flex;align-items:center;gap:16px;border-bottom:2px solid #0f3460;flex-wrap:wrap}
+header h1{font-size:18px;color:#e94560;font-weight:700;white-space:nowrap}
+.sync-status{display:flex;align-items:center;gap:6px;font-size:11px;color:#888}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:#555}
+.sync-dot.online{background:#27ae60}
+.sync-dot.syncing{background:#d35400;animation:pulse 1s infinite}
+.sync-dot.offline{background:#e94560}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.user-info{display:flex;align-items:center;gap:8px;font-size:12px;color:#aaa;margin-left:auto}
+.user-info b{color:#fff}
+.role-tag{background:#0f3460;padding:2px 8px;border-radius:10px;font-size:10px;text-transform:uppercase;color:#5dfc8d}
+.btn-logout{background:#0f3460;border:none;color:#aaa;padding:5px 10px;border-radius:5px;cursor:pointer;font-size:11px}
+.btn-logout:hover{background:#e94560;color:#fff}
+
+.tabs{background:#16213e;padding:0 20px;display:flex;gap:4px;border-bottom:2px solid #0f3460;flex-wrap:wrap}
+.tab-btn{padding:10px 16px;border:none;background:none;color:#aaa;cursor:pointer;font-size:13px;font-weight:600;border-bottom:3px solid transparent}
+.tab-btn:hover{color:#fff}
+.tab-btn.active{color:#e94560;border-bottom-color:#e94560}
+.view{display:none;padding:20px}
+.view.active{display:block}
+
+/* Toolbar */
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
+.toolbar select,.toolbar input[type=text]{background:#0f3460;border:1px solid #333;color:#fff;border-radius:6px;padding:7px 10px;font-size:13px}
+button.btn{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600}
+.btn-add{background:#27ae60;color:#fff}
+.btn-add:hover{background:#1e8449}
+.btn-primary{background:#2980b9;color:#fff}
+.btn-primary:hover{background:#1a6fa8}
+.btn-danger{background:#c0392b;color:#fff}
+.btn-danger:hover{background:#922b21}
+.btn-secondary{background:#555;color:#fff}
+.btn-secondary:hover{background:#444}
+.spacer{margin-left:auto}
+
+/* Project cards */
+.project-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.project-card{background:#16213e;border:1px solid #0f3460;border-radius:10px;padding:16px;cursor:pointer;transition:border-color .15s}
+.project-card:hover{border-color:#e94560}
+.pc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px}
+.pc-name{font-size:15px;font-weight:700;color:#fff}
+.pc-site{font-size:12px;color:#aaa;margin-top:2px}
+.status-badge{font-size:10px;font-weight:700;text-transform:uppercase;padding:3px 8px;border-radius:10px;white-space:nowrap}
+.status-planning{background:#4a4a5e;color:#ccc}
+.status-in-progress{background:#1a4a6e;color:#4fc3f7}
+.status-delayed{background:#5c1a2e;color:#ff8fa3}
+.status-completed{background:#1e4a2e;color:#5dfc8d}
+.status-on-hold{background:#5c3a10;color:#f5b041}
+.pc-dates{font-size:11px;color:#888;margin:8px 0 4px}
+.pc-progress-bar{background:#0f3460;border-radius:6px;height:8px;overflow:hidden;margin:6px 0}
+.pc-progress-fill{height:100%;background:#27ae60;transition:width .3s}
+.pc-progress-label{font-size:11px;color:#aaa;display:flex;justify-content:space-between}
+.pc-team{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+.avatar-chip{background:#0f3460;color:#5dfc8d;font-size:10px;font-weight:700;padding:3px 7px;border-radius:10px}
+.empty-state{color:#555;text-align:center;padding:60px 0;font-size:14px}
+
+/* Gantt */
+.gantt-controls{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.gantt-wrap{overflow-x:auto;border:1px solid #0f3460;border-radius:8px;background:#16213e;-webkit-overflow-scrolling:touch}
+.gantt-table{border-collapse:collapse;font-size:12px}
+.gantt-table th,.gantt-table td{border-right:1px solid #0f3460;border-bottom:1px solid #1a2a4a}
+.gantt-rowlabel{position:sticky;left:0;background:#16213e;z-index:2;padding:8px 12px;text-align:left;min-width:180px;max-width:220px;font-weight:600;color:#fff;font-size:12px}
+.gantt-rowlabel .sub{display:block;font-weight:400;color:#888;font-size:10px;margin-top:2px}
+.gantt-daycell{width:26px;min-width:26px;height:36px;text-align:center;color:#666;font-size:10px;padding:2px 0;vertical-align:middle}
+.gantt-daycell.weekend{background:#12192e}
+.gantt-daycell.today{background:#2a1a1e}
+.gantt-monthhead{position:sticky;top:0;background:#0f3460;color:#fff;font-size:11px;font-weight:700;padding:6px 4px;text-align:center;z-index:1}
+.gantt-corner{position:sticky;left:0;top:0;background:#0f3460;z-index:3}
+.gantt-bar-row{position:relative;height:36px}
+.gantt-bar{position:absolute;top:8px;height:20px;border-radius:5px;font-size:10px;color:#fff;display:flex;align-items:center;padding:0 6px;white-space:nowrap;overflow:hidden;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+.gantt-bar .fill{position:absolute;left:0;top:0;bottom:0;background:rgba(255,255,255,.28);border-radius:5px 0 0 5px}
+.gantt-bar span{position:relative;z-index:1}
+
+/* Calendar */
+.week-nav{display:flex;align-items:center;gap:8px}
+.week-nav button{background:#0f3460;border:none;color:#e0e0e0;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:13px}
+.week-nav button:hover{background:#e94560}
+.week-label{font-size:13px;font-weight:600;min-width:170px;text-align:center}
+.cal-wrap{overflow-x:auto;border:1px solid #0f3460;border-radius:8px;background:#16213e;margin-top:14px}
+.cal-table{border-collapse:collapse;width:100%;font-size:12px}
+.cal-table th{background:#0f3460;color:#fff;padding:8px;text-align:center;font-size:12px;min-width:140px}
+.cal-table td{border:1px solid #1a2a4a;vertical-align:top;padding:6px;min-width:140px}
+.cal-member{position:sticky;left:0;background:#16213e;font-weight:700;color:#fff;padding:8px 10px;white-space:nowrap;min-width:120px}
+.cal-chip{background:#0f3460;border-left:3px solid #2980b9;border-radius:4px;padding:4px 6px;font-size:11px;margin-bottom:4px;cursor:pointer}
+.cal-chip:hover{background:#1a3a5c}
+.cal-chip b{display:block;color:#fff;font-size:11px}
+.cal-chip.status-delayed{border-left-color:#e94560}
+.cal-chip.status-completed{border-left-color:#27ae60}
+.cal-chip.status-on-hold{border-left-color:#d35400}
+.cal-chip.status-planning{border-left-color:#888}
+
+/* Members / Users */
+.list-panel{display:flex;flex-direction:column;gap:8px;max-width:600px}
+.list-row{background:#16213e;border:1px solid #0f3460;border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.list-row .name{font-weight:700;color:#fff;font-size:13px}
+.list-row .meta{font-size:11px;color:#888}
+.list-row .spacer{margin-left:auto}
+.list-row select{background:#0f3460;border:1px solid #333;color:#fff;border-radius:5px;padding:4px 8px;font-size:12px}
+.pending-row{border-color:#d35400}
+.icon-btn{background:#0f3460;border:none;color:#aaa;width:26px;height:26px;border-radius:5px;cursor:pointer;font-size:12px}
+.icon-btn:hover{background:#e94560;color:#fff}
+
+/* Modal */
+.modal-bg{display:flex;position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(0,0,0,.7);z-index:100;align-items:center;justify-content:center;visibility:hidden;pointer-events:none;opacity:0;transition:opacity .2s;padding:16px}
+.modal-bg.open{visibility:visible;pointer-events:auto;opacity:1}
+.modal{background:#16213e;border:1px solid #0f3460;border-radius:10px;padding:22px;width:100%;max-width:640px;max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.modal h2{font-size:16px;color:#e94560;margin-bottom:16px}
+.form-row{margin-bottom:12px}
+.form-row label{display:block;font-size:12px;color:#aaa;margin-bottom:4px}
+.form-row input,.form-row textarea,.form-row select{width:100%;background:#0f3460;border:1px solid #333;color:#fff;border-radius:6px;padding:8px 10px;font-size:13px}
+.form-row textarea{resize:vertical;min-height:50px;font-family:inherit}
+.form-row input:focus,.form-row textarea:focus,.form-row select:focus{outline:none;border-color:#e94560}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap}
+.err-msg{color:#e94560;font-size:12px;margin-top:6px;min-height:14px}
+
+/* Tasks in project modal */
+.task-list{display:flex;flex-direction:column;gap:8px;margin:10px 0}
+.task-row{background:#0f3460;border-radius:8px;padding:10px;display:grid;grid-template-columns:1fr 110px 110px 110px 110px 30px;gap:6px;align-items:center}
+.task-row input,.task-row select{background:#16213e;border:1px solid #333;color:#fff;border-radius:5px;padding:6px 8px;font-size:12px}
+.task-row .icon-btn{width:26px;height:26px}
+@media (max-width:640px){.task-row{grid-template-columns:1fr;}.form-grid{grid-template-columns:1fr}}
+.progress-mode-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:12px;color:#aaa}
+
+/* Auth overlay */
+.auth-overlay{display:flex;position:fixed;top:0;right:0;bottom:0;left:0;background:#1a1a2e;z-index:200;align-items:center;justify-content:center;padding:16px;visibility:hidden;opacity:0;transition:opacity .2s}
+.auth-overlay.open{visibility:visible;opacity:1}
+.auth-box{background:#16213e;border:1px solid #0f3460;border-radius:12px;padding:28px;width:100%;max-width:380px}
+.auth-box h1{color:#e94560;font-size:20px;margin-bottom:4px;text-align:center}
+.auth-box p.sub{color:#888;font-size:12px;text-align:center;margin-bottom:20px}
+.auth-toggle{display:flex;gap:8px;margin-top:14px;justify-content:center;font-size:12px;color:#888}
+.auth-toggle a{color:#4fc3f7;cursor:pointer;text-decoration:underline}
+.pending-notice{text-align:center;color:#f5b041;font-size:13px;padding:20px;line-height:1.6}
+
+.hidden{display:none!important}
+.view-only .needs-edit{display:none!important}
+</style>
+</head>
+<body>
+
+<div class="auth-overlay" id="authOverlay">
+  <div class="auth-box">
+    <h1>Project Schedule</h1>
+    <p class="sub">Hydrotech M&amp;E Team Planner</p>
+    <div id="loginForm">
+      <div class="form-row"><label>Email</label><input type="email" id="loginEmail" autocomplete="username"></div>
+      <div class="form-row"><label>Password</label><input type="password" id="loginPass" autocomplete="current-password"></div>
+      <div class="err-msg" id="loginError"></div>
+      <button class="btn btn-primary" style="width:100%" onclick="loginUser()">Log In</button>
+      <div class="auth-toggle">No account? <a onclick="showRegister()">Register</a></div>
+    </div>
+    <div id="registerForm" class="hidden">
+      <div class="form-row"><label>Full Name</label><input type="text" id="regName"></div>
+      <div class="form-row"><label>Email</label><input type="email" id="regEmail" autocomplete="username"></div>
+      <div class="form-row"><label>Password</label><input type="password" id="regPass" autocomplete="new-password"></div>
+      <div class="form-row"><label>Confirm Password</label><input type="password" id="regPassConfirm" autocomplete="new-password"></div>
+      <div class="err-msg" id="regError"></div>
+      <button class="btn btn-primary" style="width:100%" onclick="registerUser()">Register</button>
+      <div class="auth-toggle">Have an account? <a onclick="showLogin()">Log In</a></div>
+    </div>
+  </div>
+</div>
+
+<div id="pendingOverlay" class="auth-overlay hidden">
+  <div class="auth-box">
+    <h1>Project Schedule</h1>
+    <div class="pending-notice">⏳ Your account is pending approval.<br>Ask an admin to assign you a role in the Users tab.</div>
+    <button class="btn btn-secondary" style="width:100%" onclick="logoutUser()">Log Out</button>
+  </div>
+</div>
+
+<header>
+  <h1>🛠️ Project Schedule</h1>
+  <div class="sync-status"><div class="sync-dot" id="syncDot"></div><span id="syncLabel">offline</span></div>
+  <div class="user-info" id="userInfo" style="display:none">
+    <b id="userName"></b><span class="role-tag" id="userRoleTag"></span>
+    <button class="btn-logout" onclick="logoutUser()">Log Out</button>
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" data-view="projects" onclick="switchView('projects')">📋 Projects</button>
+  <button class="tab-btn" data-view="gantt" onclick="switchView('gantt')">📊 Gantt</button>
+  <button class="tab-btn" data-view="calendar" onclick="switchView('calendar')">📅 Team Calendar</button>
+  <button class="tab-btn" data-view="members" onclick="switchView('members')">👷 Members</button>
+  <button class="tab-btn needs-edit role-admin-only hidden" data-view="users" id="tabUsers" onclick="switchView('users')">🔑 Users</button>
+</div>
+
+<div class="view active" id="view-projects">
+  <div class="toolbar">
+    <select id="filterStatus" onchange="renderProjects()">
+      <option value="">All Status</option>
+      <option value="planning">Planning</option>
+      <option value="in-progress">In Progress</option>
+      <option value="delayed">Delayed</option>
+      <option value="on-hold">On Hold</option>
+      <option value="completed">Completed</option>
+    </select>
+    <input type="text" id="searchProjects" placeholder="Search projects..." oninput="renderProjects()">
+    <button class="btn btn-add needs-edit" onclick="openProjectModal()">+ New Project</button>
+  </div>
+  <div class="project-grid" id="projectGrid"></div>
+</div>
+
+<div class="view" id="view-gantt">
+  <div class="gantt-controls">
+    <select id="ganttProjectSelect" onchange="renderGantt()">
+      <option value="all">All Projects (Portfolio)</option>
+    </select>
+    <div class="spacer"></div>
+  </div>
+  <div class="gantt-wrap"><div id="ganttContent"></div></div>
+</div>
+
+<div class="view" id="view-calendar">
+  <div class="week-nav">
+    <button onclick="calPrevWeek()">◀ Prev</button>
+    <span class="week-label" id="calWeekLabel"></span>
+    <button onclick="calNextWeek()">Next ▶</button>
+    <button onclick="calThisWeek()">This Week</button>
+  </div>
+  <div class="cal-wrap"><table class="cal-table" id="calTable"></table></div>
+</div>
+
+<div class="view" id="view-members">
+  <div class="toolbar"><button class="btn btn-add needs-edit" onclick="openMemberModal()">+ Add Member</button></div>
+  <div class="list-panel" id="memberList"></div>
+</div>
+
+<div class="view" id="view-users">
+  <div class="list-panel" id="userList"></div>
+</div>
+
+<!-- Project Modal -->
+<div class="modal-bg" id="projectModalBg">
+  <div class="modal">
+    <h2 id="projectModalTitle">New Project</h2>
+    <input type="hidden" id="projId">
+    <div class="form-grid">
+      <div class="form-row"><label>Project Name</label><input type="text" id="pName"></div>
+      <div class="form-row"><label>Client</label><input type="text" id="pClient"></div>
+    </div>
+    <div class="form-grid">
+      <div class="form-row"><label>Site / Location</label><input type="text" id="pSite"></div>
+      <div class="form-row"><label>Status</label>
+        <select id="pStatus">
+          <option value="planning">Planning</option>
+          <option value="in-progress">In Progress</option>
+          <option value="delayed">Delayed</option>
+          <option value="on-hold">On Hold</option>
+          <option value="completed">Completed</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-grid">
+      <div class="form-row"><label>Start Date</label><input type="date" id="pStart"></div>
+      <div class="form-row"><label>End Date</label><input type="date" id="pEnd"></div>
+    </div>
+    <div class="form-row"><label>Notes</label><textarea id="pNotes"></textarea></div>
+
+    <label style="display:block;font-size:12px;color:#aaa;margin:14px 0 6px">Tasks</label>
+    <div class="progress-mode-row">
+      <label style="display:flex;align-items:center;gap:5px;margin:0"><input type="checkbox" id="pManualProgress" onchange="toggleManualProgress()" style="width:auto"> Manual progress override</label>
+      <input type="number" id="pManualProgressVal" min="0" max="100" style="width:70px;display:none;background:#0f3460;border:1px solid #333;color:#fff;border-radius:5px;padding:5px 8px" placeholder="%">
+    </div>
+    <div class="task-list" id="taskList"></div>
+    <button class="btn btn-secondary" type="button" onclick="addTaskRow()">+ Add Task</button>
+
+    <div class="err-msg" id="projectError"></div>
+    <div class="modal-actions">
+      <button class="btn btn-danger hidden" id="btnDeleteProject" onclick="deleteProjectConfirm()">Delete Project</button>
+      <button class="btn btn-secondary" onclick="closeProjectModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveProject()">Save Project</button>
+    </div>
+  </div>
+</div>
+
+<!-- Member Modal -->
+<div class="modal-bg" id="memberModalBg">
+  <div class="modal" style="max-width:400px">
+    <h2 id="memberModalTitle">Add Member</h2>
+    <input type="hidden" id="memberId">
+    <div class="form-row"><label>Name</label><input type="text" id="memberName"></div>
+    <div class="form-row"><label>Trade / Role</label><input type="text" id="memberTrade" placeholder="e.g. Electrical Technician"></div>
+    <div class="err-msg" id="memberError"></div>
+    <div class="modal-actions">
+      <button class="btn btn-danger hidden" id="btnDeleteMember" onclick="deleteMemberConfirm()">Remove</button>
+      <button class="btn btn-secondary" onclick="closeMemberModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveMember()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Modal -->
+<div class="modal-bg" id="confirmModalBg">
+  <div class="modal" style="max-width:380px">
+    <h2 id="confirmTitle">Confirm</h2>
+    <p id="confirmMsg" style="font-size:13px;color:#ccc"></p>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeConfirmModal()">Cancel</button>
+      <button class="btn btn-danger" id="confirmActionBtn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script>
+const STORAGE_KEY = 'hydrotech_project_schedule_v1';
+const VIEW_ONLY = new URLSearchParams(location.search).has('view');
+const STATUS_LABELS = {planning:'Planning','in-progress':'In Progress',delayed:'Delayed','on-hold':'On Hold',completed:'Completed'};
+const STATUS_COLORS = {planning:'#7f8c8d','in-progress':'#2980b9',delayed:'#e94560','on-hold':'#d35400',completed:'#27ae60'};
+
+let state = { projects: {}, members: {} };
+let currentUser = null, currentRole = 'view-only';
+let fbReady = false, fbRef = null, fbUsersRef = null;
+let calWeekStart = mondayOf(new Date());
+let editingTasks = {}; // taskId -> task object while editing in modal
+
+// ---------- Date helpers ----------
+function pad2(n){ return String(n).padStart(2,'0'); }
+function toISO(d){ return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate()); }
+function parseISO(s){ if(!s) return null; const [y,m,d]=s.split('-').map(Number); return new Date(y, m-1, d); }
+function addDays(d, n){ const r = new Date(d); r.setDate(r.getDate()+n); return r; }
+function daysBetween(a,b){ return Math.round((b-a)/86400000); }
+function mondayOf(d){ const r = new Date(d); const day = r.getDay(); const diff = day===0?-6:1-day; r.setDate(r.getDate()+diff); r.setHours(0,0,0,0); return r; }
+function fmtShort(d){ return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'}); }
+function fmtRange(a,b){ if(!a && !b) return '—'; if(!b) return fmtShort(parseISO(a)); return fmtShort(parseISO(a))+' – '+fmtShort(parseISO(b)); }
+
+// ---------- Firebase ----------
+const FB_CONFIG = {
+  apiKey: "AIzaSyD8Cohe6nZ0A9kH0kUzQjpRvBQ_VDQZN7k",
+  authDomain: "service-schedule-2c481.firebaseapp.com",
+  databaseURL: "https://service-schedule-2c481-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "service-schedule-2c481",
+  storageBucket: "service-schedule-2c481.firebasestorage.app",
+  messagingSenderId: "525138167935",
+  appId: "1:525138167935:web:25e98bc7e98ca64704974a"
+};
+
+function initFirebase() {
+  try {
+    firebase.initializeApp(FB_CONFIG);
+    fbRef = firebase.database().ref('projectSchedule');
+    fbReady = true;
+  } catch(e) { console.warn('Firebase init failed', e); }
+}
+
+function setSyncStatus(status) {
+  const dot = document.getElementById('syncDot');
+  const lbl = document.getElementById('syncLabel');
+  dot.className = 'sync-dot ' + status;
+  lbl.textContent = status;
+}
+
+function saveToLocalStorage() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
+}
+
+function loadFromLocalStorage() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) state = JSON.parse(saved);
+  } catch(e) {}
+}
+
+function listenToData() {
+  setSyncStatus('syncing');
+  fbRef.on('value', snap => {
+    const val = snap.val() || {};
+    state = { projects: val.projects || {}, members: val.members || {} };
+    saveToLocalStorage();
+    setSyncStatus('online');
+    renderAll();
+  }, err => { console.warn(err); setSyncStatus('offline'); });
+}
+
+function fbSet(path, value) {
+  if (!fbReady || !fbRef) return;
+  fbRef.child(path).set(value);
+}
+function fbUpdate(path, value) {
+  if (!fbReady || !fbRef) return;
+  fbRef.child(path).update(value);
+}
+function fbRemove(path) {
+  if (!fbReady || !fbRef) return;
+  fbRef.child(path).remove();
+}
+
+// ---------- Auth ----------
+function showLogin(){ document.getElementById('loginForm').classList.remove('hidden'); document.getElementById('registerForm').classList.add('hidden'); document.getElementById('loginError').textContent=''; }
+function showRegister(){ document.getElementById('registerForm').classList.remove('hidden'); document.getElementById('loginForm').classList.add('hidden'); document.getElementById('regError').textContent=''; }
+
+function loginUser() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPass').value;
+  const errEl = document.getElementById('loginError');
+  errEl.textContent = '';
+  if (!email || !pass) { errEl.textContent = 'Please enter email and password.'; return; }
+  firebase.auth().signInWithEmailAndPassword(email, pass).catch(e => { errEl.textContent = getAuthError(e.code); });
+}
+
+function registerUser() {
+  const name = document.getElementById('regName').value.trim();
+  const email = document.getElementById('regEmail').value.trim();
+  const pass = document.getElementById('regPass').value;
+  const passConfirm = document.getElementById('regPassConfirm').value;
+  const errEl = document.getElementById('regError');
+  errEl.textContent = '';
+  if (!name || !email || !pass || !passConfirm) { errEl.textContent = 'Please fill all fields.'; return; }
+  if (pass !== passConfirm) { errEl.textContent = 'Passwords do not match.'; return; }
+  if (pass.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; return; }
+  firebase.auth().createUserWithEmailAndPassword(email, pass)
+    .then(cred => {
+      return firebase.database().ref('projectUsers').once('value').then(snap => {
+        const existing = snap.val() || {};
+        const isFirst = Object.keys(existing).filter(k => k !== cred.user.uid).length === 0;
+        const role = isFirst ? 'admin' : 'pending';
+        return firebase.database().ref('projectUsers/' + cred.user.uid).set({ name, email, role, createdAt: Date.now() });
+      });
+    })
+    .catch(e => { errEl.textContent = getAuthError(e.code); });
+}
+
+function logoutUser() {
+  if (fbRef) fbRef.off();
+  firebase.auth().signOut().then(() => {
+    currentUser = null;
+    document.getElementById('userInfo').style.display = 'none';
+    document.getElementById('pendingOverlay').classList.remove('open');
+    document.getElementById('pendingOverlay').classList.add('hidden');
+    if (!VIEW_ONLY) {
+      document.getElementById('authOverlay').classList.add('open');
+      showLogin();
+    }
+    setSyncStatus('offline');
+  });
+}
+
+function getAuthError(code) {
+  const msgs = {
+    'auth/user-not-found': 'No account found with this email.',
+    'auth/wrong-password': 'Incorrect password.',
+    'auth/invalid-email': 'Invalid email address.',
+    'auth/email-already-in-use': 'This email is already registered.',
+    'auth/weak-password': 'Password is too weak.',
+    'auth/too-many-requests': 'Too many attempts. Try again later.',
+    'auth/invalid-credential': 'Invalid email or password.'
+  };
+  return msgs[code] || 'Authentication failed. Please try again.';
+}
+
+function applyRole(role) {
+  currentRole = role;
+  document.body.classList.remove('view-only','role-admin','role-engineer','role-technician');
+  document.getElementById('tabUsers').classList.toggle('hidden', role !== 'admin');
+  if (role === 'admin') document.body.classList.add('role-admin');
+  else if (role === 'engineer') document.body.classList.add('role-engineer');
+  else if (role === 'technician') document.body.classList.add('role-technician');
+  else document.body.classList.add('view-only');
+}
+
+function initAuth() {
+  if (VIEW_ONLY) {
+    applyRole('view-only');
+    listenToData();
+    return;
+  }
+  firebase.auth().onAuthStateChanged(user => {
+    if (user) {
+      firebase.database().ref('projectUsers/' + user.uid).once('value').then(snap => {
+        const data = snap.val() || {};
+        currentUser = { uid: user.uid, name: data.name || user.email, email: user.email };
+        document.getElementById('authOverlay').classList.remove('open');
+        if (!data.role || data.role === 'pending') {
+          document.getElementById('pendingOverlay').classList.remove('hidden');
+          document.getElementById('pendingOverlay').classList.add('open');
+          applyRole('view-only');
+          listenToData();
+          return;
+        }
+        document.getElementById('pendingOverlay').classList.remove('open');
+        document.getElementById('pendingOverlay').classList.add('hidden');
+        applyRole(data.role);
+        document.getElementById('userInfo').style.display = 'flex';
+        document.getElementById('userName').textContent = currentUser.name;
+        document.getElementById('userRoleTag').textContent = data.role;
+        listenToData();
+        listenToUsers();
+      });
+    } else {
+      applyRole('view-only');
+      document.getElementById('authOverlay').classList.add('open');
+      showLogin();
+    }
+  });
+}
+
+// ---------- Users admin ----------
+let usersData = {};
+function listenToUsers() {
+  fbUsersRef = firebase.database().ref('projectUsers');
+  fbUsersRef.on('value', snap => { usersData = snap.val() || {}; renderUsers(); });
+}
+function setUserRole(uid, role) { firebase.database().ref('projectUsers/' + uid + '/role').set(role); }
+function removeUser(uid) {
+  showConfirm('Remove User', 'Remove this user\'s access? Their login will remain but they will need re-approval.', () => {
+    firebase.database().ref('projectUsers/' + uid).remove();
+    closeConfirmModal();
+  });
+}
+function renderUsers() {
+  const el = document.getElementById('userList');
+  if (!el) return;
+  const rows = Object.entries(usersData).sort((a,b) => (a[1].name||'').localeCompare(b[1].name||''));
+  if (!rows.length) { el.innerHTML = '<div class="empty-state">No users yet.</div>'; return; }
+  el.innerHTML = rows.map(([uid, u]) => `
+    <div class="list-row ${u.role==='pending'?'pending-row':''}">
+      <div><div class="name">${escapeHtml(u.name||'(no name)')}</div><div class="meta">${escapeHtml(u.email||'')}</div></div>
+      <div class="spacer"></div>
+      <select onchange="setUserRole('${uid}', this.value)">
+        <option value="pending" ${u.role==='pending'?'selected':''}>Pending</option>
+        <option value="admin" ${u.role==='admin'?'selected':''}>Admin</option>
+        <option value="engineer" ${u.role==='engineer'?'selected':''}>Engineer / PM</option>
+        <option value="technician" ${u.role==='technician'?'selected':''}>Technician</option>
+        <option value="view-only" ${u.role==='view-only'?'selected':''}>View Only</option>
+      </select>
+      <button class="icon-btn" onclick="removeUser('${uid}')">✕</button>
+    </div>`).join('');
+}
+
+// ---------- View switching ----------
+function switchView(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.view === name));
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + name));
+  if (name === 'gantt') renderGantt();
+  if (name === 'calendar') renderCalendar();
+  if (name === 'members') renderMembers();
+  if (name === 'users') renderUsers();
+}
+
+function renderAll() {
+  renderProjects();
+  populateGanttSelect();
+  renderGantt();
+  renderCalendar();
+  renderMembers();
+}
+
+// ---------- Progress ----------
+function computeProgress(proj) {
+  if (proj.progressMode === 'manual') return Math.max(0, Math.min(100, Number(proj.manualProgress) || 0));
+  const tasks = Object.values(proj.tasks || {});
+  if (!tasks.length) return 0;
+  const done = tasks.filter(t => t.status === 'done').length;
+  return Math.round((done / tasks.length) * 100);
+}
+
+// ---------- Projects list ----------
+function renderProjects() {
+  const el = document.getElementById('projectGrid');
+  const filterStatus = document.getElementById('filterStatus').value;
+  const search = document.getElementById('searchProjects').value.toLowerCase();
+  let list = Object.values(state.projects || {});
+  if (filterStatus) list = list.filter(p => p.status === filterStatus);
+  if (search) list = list.filter(p => (p.name||'').toLowerCase().includes(search) || (p.client||'').toLowerCase().includes(search) || (p.site||'').toLowerCase().includes(search));
+  list.sort((a,b) => (a.startDate||'').localeCompare(b.startDate||''));
+  if (!list.length) { el.innerHTML = '<div class="empty-state">No projects found. Click "+ New Project" to start planning.</div>'; return; }
+  el.innerHTML = list.map(p => {
+    const progress = computeProgress(p);
+    const team = [...new Set(Object.values(p.tasks||{}).map(t => t.assignee).filter(Boolean))];
+    return `
+    <div class="project-card" onclick="openProjectModal('${p.id}')">
+      <div class="pc-top">
+        <div><div class="pc-name">${escapeHtml(p.name||'Untitled')}</div><div class="pc-site">${escapeHtml(p.site||p.client||'')}</div></div>
+        <span class="status-badge status-${p.status}">${STATUS_LABELS[p.status]||p.status}</span>
+      </div>
+      <div class="pc-dates">${fmtRange(p.startDate, p.endDate)}</div>
+      <div class="pc-progress-bar"><div class="pc-progress-fill" style="width:${progress}%;background:${STATUS_COLORS[p.status]||'#27ae60'}"></div></div>
+      <div class="pc-progress-label"><span>${Object.keys(p.tasks||{}).length} tasks</span><span>${progress}%</span></div>
+      ${team.length ? `<div class="pc-team">${team.map(t => `<span class="avatar-chip">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ---------- Project modal ----------
+function openProjectModal(id) {
+  document.getElementById('projectError').textContent = '';
+  const proj = id ? state.projects[id] : null;
+  document.getElementById('projId').value = id || '';
+  document.getElementById('projectModalTitle').textContent = proj ? 'Edit Project' : 'New Project';
+  document.getElementById('pName').value = proj ? proj.name||'' : '';
+  document.getElementById('pClient').value = proj ? proj.client||'' : '';
+  document.getElementById('pSite').value = proj ? proj.site||'' : '';
+  document.getElementById('pStatus').value = proj ? proj.status||'planning' : 'planning';
+  document.getElementById('pStart').value = proj ? proj.startDate||'' : '';
+  document.getElementById('pEnd').value = proj ? proj.endDate||'' : '';
+  document.getElementById('pNotes').value = proj ? proj.notes||'' : '';
+  document.getElementById('pManualProgress').checked = !!(proj && proj.progressMode === 'manual');
+  document.getElementById('pManualProgressVal').value = proj ? proj.manualProgress||0 : 0;
+  toggleManualProgress();
+  document.getElementById('btnDeleteProject').classList.toggle('hidden', !proj);
+  editingTasks = {};
+  if (proj && proj.tasks) {
+    Object.entries(proj.tasks).forEach(([tid, t]) => editingTasks[tid] = { ...t, id: tid });
+  }
+  renderTaskRows();
+  document.getElementById('projectModalBg').classList.add('open');
+}
+function closeProjectModal() { document.getElementById('projectModalBg').classList.remove('open'); }
+function toggleManualProgress() {
+  document.getElementById('pManualProgressVal').style.display = document.getElementById('pManualProgress').checked ? '' : 'none';
+}
+
+function memberOptions(selected) {
+  const names = Object.values(state.members||{}).map(m => m.name).sort();
+  return '<option value="">— unassigned —</option>' + names.map(n => `<option value="${escapeHtml(n)}" ${n===selected?'selected':''}>${escapeHtml(n)}</option>`).join('');
+}
+
+function addTaskRow() {
+  const tid = 't' + Date.now() + Math.floor(Math.random()*1000);
+  editingTasks[tid] = { id: tid, name: '', assignee: '', start: document.getElementById('pStart').value || '', end: document.getElementById('pEnd').value || '', status: 'pending' };
+  renderTaskRows();
+}
+function removeTaskRow(tid) { delete editingTasks[tid]; renderTaskRows(); }
+function updateTaskField(tid, field, value) { if (editingTasks[tid]) editingTasks[tid][field] = value; }
+
+function renderTaskRows() {
+  const el = document.getElementById('taskList');
+  const rows = Object.values(editingTasks);
+  if (!rows.length) { el.innerHTML = '<div class="empty-state" style="padding:16px 0">No tasks yet.</div>'; return; }
+  el.innerHTML = rows.map(t => `
+    <div class="task-row">
+      <input type="text" placeholder="Task name" value="${escapeHtml(t.name||'')}" oninput="updateTaskField('${t.id}','name',this.value)">
+      <select onchange="updateTaskField('${t.id}','assignee',this.value)">${memberOptions(t.assignee)}</select>
+      <input type="date" value="${t.start||''}" onchange="updateTaskField('${t.id}','start',this.value)">
+      <input type="date" value="${t.end||''}" onchange="updateTaskField('${t.id}','end',this.value)">
+      <select onchange="updateTaskField('${t.id}','status',this.value)">
+        <option value="pending" ${t.status==='pending'?'selected':''}>Pending</option>
+        <option value="in-progress" ${t.status==='in-progress'?'selected':''}>In Progress</option>
+        <option value="done" ${t.status==='done'?'selected':''}>Done</option>
+      </select>
+      <button class="icon-btn" onclick="removeTaskRow('${t.id}')">✕</button>
+    </div>`).join('');
+}
+
+function saveProject() {
+  const errEl = document.getElementById('projectError');
+  const name = document.getElementById('pName').value.trim();
+  if (!name) { errEl.textContent = 'Project name is required.'; return; }
+  const start = document.getElementById('pStart').value;
+  const end = document.getElementById('pEnd').value;
+  if (start && end && end < start) { errEl.textContent = 'End date cannot be before start date.'; return; }
+  let id = document.getElementById('projId').value;
+  if (!id) id = 'p' + Date.now();
+  const tasks = {};
+  Object.values(editingTasks).forEach(t => {
+    if (!t.name || !t.name.trim()) return;
+    tasks[t.id] = { id: t.id, name: t.name.trim(), assignee: t.assignee||'', start: t.start||'', end: t.end||'', status: t.status||'pending' };
+  });
+  const proj = {
+    id, name, client: document.getElementById('pClient').value.trim(),
+    site: document.getElementById('pSite').value.trim(),
+    status: document.getElementById('pStatus').value,
+    startDate: start, endDate: end,
+    notes: document.getElementById('pNotes').value.trim(),
+    progressMode: document.getElementById('pManualProgress').checked ? 'manual' : 'auto',
+    manualProgress: Number(document.getElementById('pManualProgressVal').value) || 0,
+    tasks,
+    createdAt: (state.projects[id] && state.projects[id].createdAt) || Date.now(),
+    createdBy: (state.projects[id] && state.projects[id].createdBy) || (currentUser && currentUser.name) || ''
+  };
+  fbSet('projects/' + id, proj);
+  closeProjectModal();
+}
+
+function deleteProjectConfirm() {
+  const id = document.getElementById('projId').value;
+  if (!id) return;
+  showConfirm('Delete Project', 'This will permanently delete the project and all its tasks. Continue?', () => {
+    fbRemove('projects/' + id);
+    closeConfirmModal();
+    closeProjectModal();
+  });
+}
+
+// ---------- Gantt ----------
+function populateGanttSelect() {
+  const sel = document.getElementById('ganttProjectSelect');
+  const cur = sel.value;
+  const list = Object.values(state.projects||{}).sort((a,b) => (a.startDate||'').localeCompare(b.startDate||''));
+  sel.innerHTML = '<option value="all">All Projects (Portfolio)</option>' + list.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+  if (cur && [...sel.options].some(o => o.value === cur)) sel.value = cur;
+}
+
+function renderGantt() {
+  const el = document.getElementById('ganttContent');
+  const sel = document.getElementById('ganttProjectSelect').value || 'all';
+  let rows = []; // {label, sub, start, end, status, progress}
+  if (sel === 'all') {
+    rows = Object.values(state.projects||{}).filter(p => p.startDate && p.endDate).map(p => ({
+      label: p.name, sub: p.site||p.client||'', start: p.startDate, end: p.endDate, status: p.status, progress: computeProgress(p)
+    }));
+  } else {
+    const proj = state.projects[sel];
+    if (proj) {
+      rows = Object.values(proj.tasks||{}).filter(t => t.start && t.end).map(t => ({
+        label: t.name, sub: t.assignee||'', start: t.start, end: t.end,
+        status: t.status === 'done' ? 'completed' : (t.status === 'in-progress' ? 'in-progress' : 'planning'),
+        progress: t.status === 'done' ? 100 : (t.status === 'in-progress' ? 50 : 0)
+      }));
+    }
+  }
+  if (!rows.length) { el.innerHTML = '<div class="empty-state">No dated items to show. Add start/end dates to projects or tasks.</div>'; return; }
+
+  let minD = parseISO(rows[0].start), maxD = parseISO(rows[0].end);
+  rows.forEach(r => { const s = parseISO(r.start), e = parseISO(r.end); if (s < minD) minD = s; if (e > maxD) maxD = e; });
+  minD = addDays(minD, -2); maxD = addDays(maxD, 2);
+  const totalDays = Math.max(1, daysBetween(minD, maxD) + 1);
+  const todayISO = toISO(new Date());
+
+  // month header spans
+  const dayList = []; for (let i=0;i<totalDays;i++) dayList.push(addDays(minD,i));
+  let monthSpans = []; let curMonth = null;
+  dayList.forEach(d => {
+    const key = d.getFullYear()+'-'+d.getMonth();
+    if (!curMonth || curMonth.key !== key) { curMonth = { key, label: d.toLocaleDateString('en-GB',{month:'short',year:'numeric'}), count:0 }; monthSpans.push(curMonth); }
+    curMonth.count++;
+  });
+
+  let html = '<table class="gantt-table"><thead><tr><th class="gantt-corner gantt-rowlabel">&nbsp;</th>';
+  monthSpans.forEach(m => html += `<th class="gantt-monthhead" colspan="${m.count}">${m.label}</th>`);
+  html += '</tr><tr><th class="gantt-corner gantt-rowlabel">&nbsp;</th>';
+  dayList.forEach(d => {
+    const iso = toISO(d); const isWeekend = d.getDay()===0 || d.getDay()===6;
+    html += `<th class="gantt-daycell ${isWeekend?'weekend':''} ${iso===todayISO?'today':''}">${d.getDate()}</th>`;
+  });
+  html += '</tr></thead><tbody>';
+
+  rows.forEach(r => {
+    const s = parseISO(r.start), e = parseISO(r.end);
+    const offset = daysBetween(minD, s);
+    const span = Math.max(1, daysBetween(s, e) + 1);
+    const color = STATUS_COLORS[r.status] || '#2980b9';
+    html += `<tr><td class="gantt-rowlabel">${escapeHtml(r.label)}${r.sub?`<span class="sub">${escapeHtml(r.sub)}</span>`:''}</td>`;
+    html += `<td colspan="${totalDays}" style="padding:0"><div class="gantt-bar-row">`;
+    html += `<div class="gantt-bar" style="left:${offset*26}px;width:${span*26-2}px;background:${color}" title="${escapeHtml(r.label)} (${fmtRange(r.start,r.end)}) — ${r.progress}%">
+      <div class="fill" style="width:${r.progress}%"></div><span>${escapeHtml(r.label)}</span></div></div></td></tr>`;
+  });
+  html += '</tbody></table>';
+  el.innerHTML = html;
+}
+
+// ---------- Team calendar ----------
+function calPrevWeek(){ calWeekStart = addDays(calWeekStart,-7); renderCalendar(); }
+function calNextWeek(){ calWeekStart = addDays(calWeekStart,7); renderCalendar(); }
+function calThisWeek(){ calWeekStart = mondayOf(new Date()); renderCalendar(); }
+
+function renderCalendar() {
+  const days = []; for (let i=0;i<6;i++) days.push(addDays(calWeekStart,i)); // Mon-Sat
+  document.getElementById('calWeekLabel').textContent = fmtShort(days[0]) + ' – ' + fmtShort(days[5]);
+  const members = Object.values(state.members||{}).filter(m => m.active !== false).sort((a,b) => a.name.localeCompare(b.name));
+  const table = document.getElementById('calTable');
+  if (!members.length) { table.innerHTML = '<tr><td class="empty-state">No members added yet.</td></tr>'; return; }
+
+  // Build assignments: memberName -> dayISO -> [ {project, task, status} ]
+  const assign = {};
+  Object.values(state.projects||{}).forEach(p => {
+    Object.values(p.tasks||{}).forEach(t => {
+      if (!t.assignee || !t.start || !t.end) return;
+      const s = parseISO(t.start), e = parseISO(t.end);
+      days.forEach(d => {
+        if (d >= s && d <= e) {
+          const iso = toISO(d);
+          assign[t.assignee] = assign[t.assignee] || {};
+          assign[t.assignee][iso] = assign[t.assignee][iso] || [];
+          assign[t.assignee][iso].push({ project: p.name, task: t.name, status: t.status === 'done' ? 'completed' : (t.status==='in-progress'?'in-progress':'planning') });
+        }
+      });
+    });
+  });
+
+  let html = '<thead><tr><th class="cal-member" style="position:sticky;top:0;background:#0f3460">Member</th>';
+  days.forEach(d => html += `<th>${d.toLocaleDateString('en-GB',{weekday:'short'})}<br>${fmtShort(d)}</th>`);
+  html += '</tr></thead><tbody>';
+  members.forEach(m => {
+    html += `<tr><td class="cal-member">${escapeHtml(m.name)}<div style="font-weight:400;color:#888;font-size:10px">${escapeHtml(m.trade||'')}</div></td>`;
+    days.forEach(d => {
+      const iso = toISO(d);
+      const items = (assign[m.name] && assign[m.name][iso]) || [];
+      html += `<td>${items.map(it => `<div class="cal-chip status-${it.status}"><b>${escapeHtml(it.project)}</b>${escapeHtml(it.task)}</div>`).join('') || ''}</td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody>';
+  table.innerHTML = html;
+}
+
+// ---------- Members ----------
+function renderMembers() {
+  const el = document.getElementById('memberList');
+  const list = Object.values(state.members||{}).sort((a,b) => a.name.localeCompare(b.name));
+  if (!list.length) { el.innerHTML = '<div class="empty-state">No members yet. Add your M&E team.</div>'; return; }
+  el.innerHTML = list.map(m => `
+    <div class="list-row">
+      <div><div class="name">${escapeHtml(m.name)}</div><div class="meta">${escapeHtml(m.trade||'')}</div></div>
+      <div class="spacer"></div>
+      <button class="icon-btn needs-edit" onclick="openMemberModal('${m.id}')">✎</button>
+    </div>`).join('');
+}
+
+function openMemberModal(id) {
+  document.getElementById('memberError').textContent = '';
+  const m = id ? state.members[id] : null;
+  document.getElementById('memberId').value = id || '';
+  document.getElementById('memberModalTitle').textContent = m ? 'Edit Member' : 'Add Member';
+  document.getElementById('memberName').value = m ? m.name||'' : '';
+  document.getElementById('memberTrade').value = m ? m.trade||'' : '';
+  document.getElementById('btnDeleteMember').classList.toggle('hidden', !m);
+  document.getElementById('memberModalBg').classList.add('open');
+}
+function closeMemberModal(){ document.getElementById('memberModalBg').classList.remove('open'); }
+function saveMember() {
+  const name = document.getElementById('memberName').value.trim();
+  if (!name) { document.getElementById('memberError').textContent = 'Name is required.'; return; }
+  let id = document.getElementById('memberId').value;
+  if (!id) id = 'm' + Date.now();
+  fbSet('members/' + id, { id, name, trade: document.getElementById('memberTrade').value.trim(), active: true });
+  closeMemberModal();
+}
+function deleteMemberConfirm() {
+  const id = document.getElementById('memberId').value;
+  if (!id) return;
+  showConfirm('Remove Member', 'Remove this team member? Existing task assignments will keep the name as text.', () => {
+    fbRemove('members/' + id);
+    closeConfirmModal();
+    closeMemberModal();
+  });
+}
+
+// ---------- Confirm modal ----------
+function showConfirm(title, msg, onConfirm) {
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmMsg').textContent = msg;
+  const btn = document.getElementById('confirmActionBtn');
+  const newBtn = btn.cloneNode(true);
+  btn.parentNode.replaceChild(newBtn, btn);
+  newBtn.addEventListener('click', onConfirm);
+  document.getElementById('confirmModalBg').classList.add('open');
+}
+function closeConfirmModal(){ document.getElementById('confirmModalBg').classList.remove('open'); }
+
+// ---------- Utils ----------
+function escapeHtml(s) { return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// ---------- Init ----------
+loadFromLocalStorage();
+renderAll();
+initFirebase();
+initAuth();
+</script>
+</body>
+</html>
