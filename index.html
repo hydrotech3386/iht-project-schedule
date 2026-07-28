@@ -1173,7 +1173,7 @@ function renderMonthCalendar() {
       const shown = jobs.slice(0, 3);
       html += `<div class="day-cell ${muted?'muted':''} ${iso===todayISO?'today':''}" onclick="openDayDetail('${iso}')">
         <div class="day-num">${day.getDate()}</div>
-        ${shown.map(j => `<div class="day-chip ${j.projStatus==='delayed'?'delayed':(j.status==='done'?'done':'')}">${escapeHtml(j.task||j.project)}</div>`).join('')}
+        ${shown.map(j => `<div class="day-chip ${j.projStatus==='delayed'?'delayed':(j.status==='done'?'done':'')}" title="${escapeHtml(j.task)}">${escapeHtml(j.project||j.task)}</div>`).join('')}
         ${jobs.length > 3 ? `<div class="day-more">+${jobs.length-3} more</div>` : ''}
       </div>`;
     }
